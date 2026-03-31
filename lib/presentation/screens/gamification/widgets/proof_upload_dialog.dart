@@ -111,11 +111,16 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
         task: widget.task,
         imageFile: _selectedImage!,
         onConfirm: () {
-          // Close result dialog
-          Navigator.pop(context);
-          // Close upload dialog and return to parent
-          widget.onProofSubmitted(_selectedImage!.path);
-          Navigator.pop(context);
+          if (result.isValid) {
+            // Close result dialog
+            Navigator.pop(context);
+            // Close upload dialog and return to parent
+            widget.onProofSubmitted(_selectedImage!.path);
+            Navigator.pop(context);
+          } else {
+            // Just close the result dialog so they can try again
+            Navigator.pop(context);
+          }
         },
       ),
     );
@@ -619,7 +624,7 @@ class VerificationResultDialog extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      result.isValid ? 'Great! Close' : 'Try Again',
+                      result.isValid ? 'OK' : 'Try Again',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,

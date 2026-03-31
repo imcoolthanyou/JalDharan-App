@@ -70,4 +70,48 @@ class DashboardApiService {
       return false;
     }
   }
+
+  /// Send prompt to local Ollama instance to generate a summary report
+  Future<String> generateAiReport(GroundwaterData data) async {
+    try {
+      final String prompt = '''
+You are Jal Dharan AI, a water monitoring expert. Generate a very brief summary and future prediction based on these current readings:
+TDS: ${data.tdsLevel} ppm
+pH: ${data.phLevel}
+Depth: ${data.sensorDistanceCm} cm
+Water Quality: ${data.qualityStatus}
+
+Write 2 short paragraphs:
+1. Current State Summary
+2. Future Predictions & Advice
+
+Do not use formatting like markdown bold (*). Just plain text.
+''';
+
+      // Address for physical device to reach host's localhost where Ollama runs
+      final ollamaUrl = Uri.parse('http://10.90.72.219:11434/api/generate'); 
+      final response = await http.post(
+        ollamaUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'models': 'gemma3:4b',
+          'prompt': prompt,
+          'stream': false,
+          'options': {
+            'temperature': 0.7,
+            'num_predict': 250,
+          }
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['response']?.toString().trim() ?? 'No summary generated.';
+      } else {
+        return 'AI Summary could not be generated at this time (Error ${response.statusCode}).';
+      }
+    } catch (e) {
+      return 'AI Summary failed: Ensure local Ollama is running and models gemma3:4b is pulled.';
+    }
+  }
 }

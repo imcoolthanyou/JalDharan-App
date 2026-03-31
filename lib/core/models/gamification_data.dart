@@ -1,9 +1,9 @@
 class UserProfile {
   final String name;
   final String rank;
-  final int totalPoints;
-  final int level;
-  final int levelProgress; // percentage to next level
+  int totalPoints;
+  int level;
+  int levelProgress; // percentage to next level
   final String badge;
   final int position; // ranking position
 
@@ -103,9 +103,9 @@ class DailyTask {
 }
 
 class RankingUser {
-  final int position;
+  int position;
   final String name;
-  final int points;
+  int points;
   final String initials;
   final bool isCurrentUser;
   final String? status; // 'Top 10%' etc

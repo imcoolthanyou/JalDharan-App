@@ -60,6 +60,27 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
         task.proofPath = proofPath;
         task.isCompleted = true;
         _totalPoints += task.points;
+
+        // Update user profile dynamically
+        _userProfile.totalPoints = _totalPoints;
+        _userProfile.levelProgress += 20; // Increase level progress dynamically
+        if (_userProfile.levelProgress >= 100) {
+          _userProfile.level += 1;
+          _userProfile.levelProgress -= 100;
+        }
+
+        // Update rank dynamically
+        try {
+          RankingUser currentUser = _rankings.firstWhere((r) => r.isCurrentUser);
+          currentUser.points = _totalPoints;
+          _rankings.sort((a, b) => b.points.compareTo(a.points));
+          // Re-assign positions based on new sorted order
+          for (int i = 0; i < _rankings.length; i++) {
+            _rankings[i].position = i + 1;
+          }
+        } catch (e) {
+          // Current user not found in mock list, safe to ignore
+        }
       }
     });
 

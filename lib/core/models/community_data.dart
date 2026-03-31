@@ -105,7 +105,8 @@ class KnowledgeArticle {
         description:
             'Learn effective methods to recharge groundwater and improve water availability in your region.',
         category: 'Water Management',
-        imageUrl: 'assets/recharge_pit.png',
+        imageUrl:
+            'https://5.imimg.com/data5/SELLER/Default/2021/11/AC/XG/GV/2793594/img-20160710-113917.jpg',
         readTime: 8,
       ),
       KnowledgeArticle(
@@ -114,7 +115,8 @@ class KnowledgeArticle {
         description:
             'Complete guide to designing and implementing rainwater harvesting systems for agricultural use.',
         category: 'Harvesting',
-        imageUrl: 'assets/recharge_pit.png',
+        imageUrl:
+            'https://5.imimg.com/data5/SELLER/Default/2023/10/354350364/SL/UP/OO/2402236/rain-water-percolation-tank.jpeg',
         readTime: 12,
       ),
       KnowledgeArticle(
@@ -123,7 +125,8 @@ class KnowledgeArticle {
         description:
             'Simple methods to test water quality and understand what different measurements mean.',
         category: 'Quality',
-        imageUrl: 'assets/recharge_pit.png',
+        imageUrl:
+            'https://live.staticflickr.com/8508/8423016623_ff645c3908_b.jpg',
         readTime: 6,
       ),
       KnowledgeArticle(
@@ -132,7 +135,8 @@ class KnowledgeArticle {
         description:
             'Optimize irrigation to reduce water wastage while maintaining crop productivity.',
         category: 'Irrigation',
-        imageUrl: 'assets/recharge_pit.png',
+        imageUrl:
+            'https://40800710.delivery.rocketcdn.me/wp-content/uploads/2018/11/above-ground-vs-underground-water-storage-tanks-the-pros-and-cons-image-01.jpg',
         readTime: 10,
       ),
       KnowledgeArticle(
@@ -141,7 +145,8 @@ class KnowledgeArticle {
         description:
             'Understand soil moisture levels and their impact on crop growth and water conservation.',
         category: 'Soil',
-        imageUrl: 'assets/recharge_pit.png',
+        imageUrl:
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSPieiBHwD0MOTYjImx5K66biJuhp2FiRtWpw&s',
         readTime: 7,
       ),
       KnowledgeArticle(
@@ -150,7 +155,8 @@ class KnowledgeArticle {
         description:
             'Plan water usage for different seasons and prepare for water scarcity periods.',
         category: 'Planning',
-        imageUrl: 'assets/recharge_pit.png',
+        imageUrl:
+            'https://www.tirupatifence.com/uploaded-files/category/images/thumbs/Gabion-Box-thumbs-500X500.jpg',
         readTime: 9,
       ),
     ];

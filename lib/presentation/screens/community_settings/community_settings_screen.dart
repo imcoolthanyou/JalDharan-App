@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/models/community_data.dart';
 import '../../../core/theme/app_colors.dart';
 
 class CommunitySettingsScreen extends StatefulWidget {
@@ -11,166 +10,32 @@ class CommunitySettingsScreen extends StatefulWidget {
 }
 
 class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
-  late List<CommunityMember> _members;
   bool _notificationsEnabled = true;
   bool _dataSharing = true;
   bool _communityUpdates = true;
 
   @override
-  void initState() {
-    super.initState();
-    _members = CommunityMember.mockMembers();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: const Text(
-            'Settings',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.darkGrey,
-            ),
-          ),
-          centerTitle: true,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
-            child: Container(
-              color: Colors.white,
-              child: TabBar(
-                labelColor: AppColors.deepAquiferBlue,
-                unselectedLabelColor: AppColors.mediumGrey,
-                indicatorColor: AppColors.deepAquiferBlue,
-                indicatorWeight: 3,
-                indicatorSize: TabBarIndicatorSize.label,
-                labelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                tabs: const [
-                  Tab(text: 'Community'),
-                  Tab(text: 'Settings'),
-                ],
-              ),
-            ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkGrey,
           ),
         ),
-        body: TabBarView(
-          children: [
-            _buildCommunityTab(),
-            _buildSettingsTab(),
-          ],
-        ),
+        centerTitle: true,
       ),
+      body: _buildSettingsContent(),
     );
   }
 
-  Widget _buildCommunityTab() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Community Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Our Community',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.darkGrey,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Connect with local water conservation leaders and organizations.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.mediumGrey,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Community Stats
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.people_rounded,
-                    title: 'Members',
-                    value: '2,543',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    icon: Icons.water_drop_rounded,
-                    title: 'Liters Saved',
-                    value: '1.2M',
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Members List Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Active Organizations',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppColors.darkGrey,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Members List
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: List.generate(
-                _members.length,
-                (index) => Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index < _members.length - 1 ? 12 : 32,
-                  ),
-                  child: _buildMemberCard(_members[index]),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsTab() {
+  Widget _buildSettingsContent() {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,8 +66,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                 const SizedBox(height: 12),
                 _buildSettingTile(
                   title: 'Data Sharing',
-                  subtitle:
-                      'Share your data to help improve predictions and community insights',
+                  subtitle: 'Share your data to help improve predictions',
                   value: _dataSharing,
                   onChanged: (value) {
                     setState(() => _dataSharing = value);
@@ -297,160 +161,6 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.deepAquiferBlue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: AppColors.deepAquiferBlue,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppColors.darkGrey,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.mediumGrey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMemberCard(CommunityMember member) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.deepAquiferBlue.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                member.initials,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.deepAquiferBlue,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        member.name,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.darkGrey,
-                        ),
-                      ),
-                    ),
-                    if (member.isAdmin)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.fieldGreen.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'Admin',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.fieldGreen,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  member.location,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.mediumGrey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '${member.points}',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: AppColors.deepAquiferBlue,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSettingTile({
     required String title,
     required String subtitle,
@@ -524,9 +234,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
               : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: isDestructive
-              ? Border.all(
-                  color: AppColors.criticalRed.withOpacity(0.2),
-                )
+              ? Border.all(color: AppColors.criticalRed.withOpacity(0.2))
               : null,
           boxShadow: isDestructive
               ? null

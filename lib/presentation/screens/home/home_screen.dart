@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../../core/models/groundwater_data.dart';
 import '../../../core/services/dashboard_api_service.dart';
+import '../../../core/services/pdf_report_service.dart';
 import '../../../core/services/socket_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/home_widgets.dart';
 import '../../widgets/animated_gradient_background.dart';
-import '../analytics/analytics_screen.dart';
+import '../../../core/config/api_config.dart';
+import '../../../core/services/water_alert_service.dart';
+
 import '../rainwater_harvesting/rainwater_harvesting_screen.dart';
+import 'homedigitaltwin_clean.dart';
 import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
@@ -22,13 +28,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late GroundwaterData _currentData;
   final DashboardApiService _apiService = DashboardApiService();
   bool _isLoading = false;
+  bool _isPumpOn = false;
+  bool _isLoadingPump = false;
   late Timer _autoRefreshTimer;
+  Timer? _zeroFlowTimer; // Auto-shutoff when pump ON but flow = 0 for 10s
   static const Duration _refreshInterval = Duration(seconds: 10);
 
   @override
   void initState() {
     super.initState();
     _currentData = GroundwaterData.mockCurrentData();
+    // Initialize pump state to OFF by default (natural state when not connected)
+    _isPumpOn = false;
+
+    // Initialize notifications
+    WaterAlertService.initialize();
 
     // Initialize Socket.IO
     Future.microtask(() {
@@ -38,6 +52,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
       // Add listener for sensor updates
       socketService.addSensorUpdateListener(_onSensorDataReceived);
+      // Add listener for connection status to manage pump state
+      socketService.addConnectionStatusListener(_onConnectionStatusChanged);
     });
 
     // Also keep HTTP polling as fallback
@@ -53,6 +69,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     developer.log('🔄 HomeScreen received Socket sensor update: $data');
 
     try {
+      // Handle pump state updates from socket
+      if (data.containsKey('state') && data.containsKey('source')) {
+        // This is a pump_state event
+        setState(() {
+          _isPumpOn = (data['state'] == "ON");
+        });
+      } else if (data.containsKey('motor_status')) {
+        // This is from sensor_update with motor status
+        bool physicalState = (data['motor_status'] == "ON");
+        if (physicalState != _isPumpOn) {
+          setState(() {
+            _isPumpOn = physicalState;
+          });
+        }
+      }
+
       // Merge raw sensor data with existing calculated data
       final updatedData = _currentData.mergeWithSensorUpdate(data);
 
@@ -60,7 +92,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         setState(() {
           _currentData = updatedData;
         });
-        developer.log('✅ HomeScreen UI updated with fresh sensor values from Socket');
+        developer.log(
+          '✅ HomeScreen UI updated with fresh sensor values from Socket',
+        );
+        // Trigger notifications if water quality is bad
+        WaterAlertService.checkAndNotify(
+          ph: updatedData.phLevel,
+          tds: updatedData.tdsLevel,
+        );
+        // Auto-shutoff watchdog
+        _checkZeroFlowWatchdog();
       }
     } catch (e) {
       developer.log('❌ Error updating with socket sensor data: $e');
@@ -94,6 +135,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _currentData = data;
           _isLoading = false;
         });
+
+        // Trigger notifications for water quality alerts
+        developer.log('📢 Checking water quality from API data: pH=${data.phLevel}, TDS=${data.tdsLevel}');
+        WaterAlertService.checkAndNotify(
+          ph: data.phLevel,
+          tds: data.tdsLevel,
+        );
       } else {
         setState(() {
           _isLoading = false;
@@ -130,20 +178,121 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _currentData.waterStressLevel != newData.waterStressLevel ||
         _currentData.weatherTemp != newData.weatherTemp ||
         _currentData.weatherCondition != newData.weatherCondition ||
-        _currentData.rainAlert != newData.rainAlert;
+        _currentData.rainAlert != newData.rainAlert ||
+        _currentData.flowRateThisSession != newData.flowRateThisSession ||
+        _currentData.totalExtractionPerSession !=
+            newData.totalExtractionPerSession ||
+        _currentData.totalLifetimeExtractionL !=
+            newData.totalLifetimeExtractionL ||
+        _currentData.waterHealthAI?.contaminationScore !=
+            newData.waterHealthAI?.contaminationScore ||
+        _currentData.waterHealthAI?.sensorInsights.toString() !=
+            newData.waterHealthAI?.sensorInsights.toString();
+  }
+
+  /// Handle connection status changes
+  /// When disconnected, set pump to OFF state (natural state)
+  void _onConnectionStatusChanged(bool isConnected) {
+    if (!isConnected && mounted) {
+      setState(() {
+        _isPumpOn = false; // Natural state when not connected
+        developer.log('🔌 Connection lost - pump set to OFF state');
+      });
+    }
+  }
+
+  /// Toggle pump state and send request to backend
+  Future<void> _togglePump(bool value) async {
+    setState(() {
+      _isLoadingPump = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/control/pump'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"action": value ? "ON" : "OFF"}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _isPumpOn = value;
+          _isLoadingPump = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingPump = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingPump = false;
+        _isPumpOn = false; // Reset to OFF state on communication error
+      });
+      developer.log("Error toggling pump: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Error communicating with pump controller - pump set to OFF",
+          ),
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
     _autoRefreshTimer.cancel();
+    _zeroFlowTimer?.cancel();
+    _zeroFlowTimer = null;
 
-    // Remove socket listener
+    // Remove socket listeners
     Future.microtask(() {
       final socketService = Provider.of<SocketService>(context, listen: false);
       socketService.removeSensorUpdateListener(_onSensorDataReceived);
+      socketService.removeConnectionStatusListener(_onConnectionStatusChanged);
     });
 
     super.dispose();
+  }
+
+  /// Auto-shutoff: if pump is ON and flow rate is 0 for 10 seconds, turn off pump
+  void _checkZeroFlowWatchdog() {
+    final bool pumpOn = _isPumpOn;
+    final bool zeroFlow = _currentData.flowRate <= 0.0;
+
+    if (pumpOn && zeroFlow) {
+      // Start the watchdog timer if not already running
+      _zeroFlowTimer ??= Timer(const Duration(seconds: 10), () {
+        if (_isPumpOn && _currentData.flowRate <= 0.0 && mounted) {
+          developer.log('⚠️ Zero-flow watchdog: pump auto-shutoff triggered.');
+          _togglePump(false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                '🚫 Pump auto-turned OFF — Zero flow detected for 10 seconds.',
+              ),
+              backgroundColor: AppColors.warningOrange,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Turn ON',
+                textColor: Colors.white,
+                onPressed: () => _togglePump(true),
+              ),
+            ),
+          );
+        }
+        _zeroFlowTimer = null;
+      });
+    } else {
+      // Flow is back or pump is off — cancel the watchdog
+      _zeroFlowTimer?.cancel();
+      _zeroFlowTimer = null;
+    }
   }
 
   Color _getWaterStressColor(String stressLevel) {
@@ -160,28 +309,72 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Column(
-        children: [
-          // Fixed Header with Animated Gradient
-          AnimatedGradientBackground(
-            colors: [
-              AppColors.deepAquiferBlue,
-              AppColors.tealStart,
-              AppColors.tealEnd,
-              AppColors.deepAquiferBlue,
-            ],
-            duration: const Duration(seconds: 8),
-            showDebugIndicator: false,
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  Padding(
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            // Digital Twin Section - 85% of screen height
+            SizedBox(
+              height: screenHeight * 0.85,
+              child: HomeDigitalTwin(initialData: _currentData),
+            ),
+
+            // Swipe Up Indicator - 15% of screen height
+            Container(
+              height: screenHeight * 0.15,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF0F172A).withOpacity(0.0),
+                    const Color(0xFF0F172A).withOpacity(0.95),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Swipe up to see all information',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.9),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 24,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Main Home Screen Content
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with Animated Gradient
+                AnimatedGradientBackground(
+                  colors: [
+                    AppColors.deepAquiferBlue,
+                    AppColors.tealStart,
+                    AppColors.tealEnd,
+                    AppColors.deepAquiferBlue,
+                  ],
+                  duration: const Duration(seconds: 8),
+                  showDebugIndicator: false,
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
@@ -206,17 +399,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Jal Dharan',
-                                style: const TextStyle(
-                                  fontSize: 24,
+                              const Text(
+                                'Water Quality & Parameters',
+                                style: TextStyle(
+                                  fontSize: 20,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
                                   letterSpacing: -0.5,
                                 ),
                               ),
                               Text(
-                                'Groundwater Monitoring',
+                                'Real-time sensor data',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -246,27 +439,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                ),
 
-          // Current Data Content (No tabs)
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Last updated chip
-                  Align(
+                // Last Updated Chip
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Align(
                     alignment: Alignment.centerRight,
                     child: Container(
-                      constraints: BoxConstraints(
-                        maxWidth: screenWidth * 0.6,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -288,194 +472,111 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             color: AppColors.deepAquiferBlue,
                           ),
                           const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              _currentData.formattedTime,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.deepAquiferBlue,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                          Text(
+                            _currentData.formattedTime,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.deepAquiferBlue,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                ),
 
-                  // Weather Widget
-                  if (_currentData.weatherTemp != null)
-                    _buildWeatherCard(),
-                  const SizedBox(height: 20),
-
-                  // Current Data Card
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: screenWidth,
-                    ),
-                    child: CurrentDataCard(
-                      currentDepth: _currentData.currentDepth,
-                      totalDepth: _currentData.totalDepth,
-                      remainingPercentage: _currentData.remainingPercentage,
-                      flowRate: _currentData.flowRate,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Section Title
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'Water Quality & Parameters',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkGrey,
-                        letterSpacing: -0.5,
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Quality Score Card
+                      QualityScoreCard(
+                        qualityScore: _currentData.qualityScore,
+                        qualityStatus: _currentData.qualityStatus,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                  // Quality Score
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: screenWidth,
-                    ),
-                    child: QualityScoreCard(
-                      qualityScore: _currentData.qualityScore,
-                      qualityStatus: _currentData.qualityStatus,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Parameter Cards Grid
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final cardWidth = (constraints.maxWidth - 12) / 2;
-                      return GridView.count(
-                        crossAxisCount: 2,
+                      // Parameter Cards Grid
+                      GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
-                        childAspectRatio: 0.85,
+                        childAspectRatio: 1.0,
                         children: [
-                          _buildModernParameterCard(
-                            title: 'TDS Level',
-                            value: _currentData.tdsLevel,
-                            unit: 'ppm',
-                            status: _currentData.tdsStatus,
+                          _buildParameterCard(
                             icon: Icons.water_drop_rounded,
-                            iconColor: const Color(0xFF20B2AA),
-                            maxWidth: cardWidth,
+                            label: 'Water Depth',
+                            value: _currentData.currentDepth.toStringAsFixed(1),
+                            unit: 'm',
+                            color: AppColors.deepAquiferBlue,
                           ),
-                          _buildModernParameterCard(
-                            title: 'pH Level',
-                            value: _currentData.phLevel,
-                            unit: 'pH',
-                            status: _currentData.phStatus,
+                          _buildParameterCard(
+                            icon: Icons.waves,
+                            label: 'Flow Rate',
+                            value: _currentData.flowRate.toStringAsFixed(1),
+                            unit: 'L/min',
+                            color: AppColors.tealStart,
+                          ),
+                          _buildParameterCard(
                             icon: Icons.science_rounded,
-                            iconColor: const Color(0xFF9C27B0),
-                            maxWidth: cardWidth,
+                            label: 'TDS Level',
+                            value: _currentData.tdsLevel.toStringAsFixed(0),
+                            unit: 'ppm',
+                            color: AppColors.warningOrange,
                           ),
-                          _buildModernParameterCard(
-                            title: 'Pump Status',
-                            value: _currentData.motorStatus == 'Normal' ? 1 : (_currentData.motorStatus == 'Off' ? 0 : 2),
-                            unit: _currentData.motorStatus,
-                            status: _currentData.motorStatus,
-                            icon: Icons.power_settings_new_rounded,
-                            iconColor: _currentData.motorStatus == 'Normal'
-                                ? const Color(0xFF4CAF50)
-                                : (_currentData.motorStatus == 'Off'
-                                ? AppColors.mediumGrey
-                                : AppColors.warningOrange),
-                            maxWidth: cardWidth,
+                          _buildParameterCard(
+                            icon: Icons.sensor_window_rounded,
+                            label: 'pH Level',
+                            value: _currentData.phLevel.toStringAsFixed(1),
+                            unit: '',
+                            color: AppColors.fieldGreen,
                           ),
-                          _buildModernParameterCard(
-                            title: 'Power (kW)',
-                            value: _currentData.powerKw,
-                            unit: 'kW',
-                            status: '${(_currentData.powerKw * 1000 / 230).toStringAsFixed(1)}A',
+                          _buildParameterCard(
                             icon: Icons.flash_on_rounded,
-                            iconColor: const Color(0xFFFFC107),
-                            maxWidth: cardWidth,
+                            label: 'Voltage',
+                            value: _currentData.voltage.toStringAsFixed(0),
+                            unit: 'V',
+                            color: AppColors.criticalRed,
+                          ),
+                          _buildParameterCard(
+                            icon: Icons.electric_bolt_rounded,
+                            label: 'Current',
+                            value: _currentData.current.toStringAsFixed(1),
+                            unit: 'A',
+                            color: AppColors.earthBrown,
                           ),
                         ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Warning Card
-                  _buildModernWarningCard(),
-                  const SizedBox(height: 20),
-
-                  // Section Title
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'Extraction & Visualization',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkGrey,
-                        letterSpacing: -0.5,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
 
-                  // Extraction Card
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: screenWidth,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.deepAquiferBlue.withOpacity(0.05),
-                          AppColors.tealStart.withOpacity(0.05),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.lightGrey,
-                        width: 1,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
+                      const SizedBox(height: 24),
+
+                      // Pump Control Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.lightGrey),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                            child: const Icon(
-                              Icons.water_drop_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Extraction Session',
+                                  'Pump Control',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -483,133 +584,714 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _buildExtractionStat(
-                                      label: 'Current Session',
-                                      value: '${_currentData.currentSession.toStringAsFixed(0)} m³',
-                                    ),
-                                    _buildExtractionStat(
-                                      label: 'Estimated Extraction',
-                                      value: '${_currentData.estimatedExtraction.toStringAsFixed(0)} m³',
-                                    ),
-                                  ],
+                                Text(
+                                  _isPumpOn ? 'Active' : 'Inactive',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: _isPumpOn
+                                        ? AppColors.fieldGreen
+                                        : AppColors.mediumGrey,
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Visualization Card (Rainwater Harvesting with Green Background)
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: screenWidth,
-                    ),
-                    child: _buildModernVisualizationCard(),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Knowledge Hub Card
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, '/knowledge_hub');
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.deepAquiferBlue,
-                                    AppColors.tealStart,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                            if (_isLoadingPump)
+                              const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
                                 ),
-                                shape: BoxShape.circle,
+                              )
+                            else
+                              Switch(
+                                value: _isPumpOn,
+                                onChanged: _togglePump,
+                                activeColor: AppColors.fieldGreen,
                               ),
-                              child: const Icon(
-                                Icons.library_books_rounded,
-                                color: Colors.white,
-                                size: 26,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Knowledge Hub',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.darkGrey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Learn from expert water conservation guides',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.mediumGrey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: AppColors.mediumGrey,
-                              size: 18,
-                            ),
                           ],
                         ),
                       ),
-                    ),
+
+                      const SizedBox(height: 24),
+
+                      // Rainwater Harvesting Section
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const RainwaterHarvestingScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.tealStart.withOpacity(0.2),
+                                AppColors.tealEnd.withOpacity(0.2),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.tealStart.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.tealStart.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.cloud_download_rounded,
+                                  color: AppColors.tealStart,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Rainwater Harvesting',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.darkGrey,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Learn about structure & setup',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.mediumGrey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: AppColors.tealStart,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Knowledge Hub Section
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/knowledge_hub');
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.fieldGreen.withOpacity(0.2),
+                                AppColors.deepAquiferBlue.withOpacity(0.2),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.fieldGreen.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.fieldGreen.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.school_rounded,
+                                  color: AppColors.fieldGreen,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Knowledge Hub',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.darkGrey,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Explore educational resources',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.mediumGrey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: AppColors.fieldGreen,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  const SizedBox(height: 32),
-                ],
-              ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParameterCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String unit,
+    required Color color,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lightGrey),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.darkGrey,
+            ),
+          ),
+          Text(
+            unit,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: AppColors.mediumGrey,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mediumGrey,
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/jal_shayak');
-        },
-        backgroundColor: AppColors.deepAquiferBlue,
-        elevation: 8,
-        child: const Icon(
-          Icons.auto_awesome_rounded,
-          color: Colors.white,
-          size: 28,
+    );
+  }
+
+
+  // ---------------------------------------------------------------
+  // ── Download Report button ────────────────────────────────────────────────
+  Widget _buildDownloadReportButton() {
+    return GestureDetector(
+      onTap: () async {
+        if (_currentData.waterHealthAI == null) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Wait for data to load completely before generating report.'),
+              backgroundColor: AppColors.warningOrange,
+            ),
+          );
+          return;
+        }
+
+        // 1. Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Jal Dharan AI is writing your report...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        try {
+          // 2. Fetch AI summary from local Ollama via our service
+          final summary = await DashboardApiService().generateAiReport(_currentData);
+
+          // 3. Close the loading dialog
+          if (mounted) Navigator.pop(context);
+
+          // 4. Generate and show the PDF right here
+          await PdfReportService.generateAndShowReport(_currentData, summary);
+
+        } catch (e) {
+          if (mounted) Navigator.pop(context); // Close dialog on error
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error generating report: $e'),
+                backgroundColor: AppColors.criticalRed,
+              ),
+            );
+          }
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.deepAquiferBlue.withOpacity(0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.download_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Download Water Report',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'PDF · pH, TDS, Depth, AI Analysis',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 14),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white70,
+              size: 14,
+            ),
+          ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
+  // ── Water Health AI placeholder (shown while waiting for backend data) ────
+  Widget _buildWaterHealthPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        border: Border.all(color: AppColors.lightGrey),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.lightGrey,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.biotech_rounded,
+                color: AppColors.mediumGrey,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Water Health AI',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Waiting for AI analysis from backend…',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.mediumGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.deepAquiferBlue,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------
+  // Contamination Alert Banner — shown when pH or TDS is abnormal
+  // ---------------------------------------------------------------
+  Widget _buildContaminationBanner() {
+    final bool phBad =
+        _currentData.phLevel < WaterThresholds.phMin ||
+        _currentData.phLevel > WaterThresholds.phMax;
+    final bool tdsBad = _currentData.tdsLevel > WaterThresholds.tdsMax;
+    final bool isContaminated = phBad || tdsBad;
+
+    if (!isContaminated) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.fieldGreen.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.fieldGreen.withOpacity(0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.fieldGreen,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Water Quality: Safe',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.fieldGreen,
+                    ),
+                  ),
+                  Text(
+                    'All parameters are within safe limits.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.fieldGreen.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Build issue list for contamination advisory
+    final List<Map<String, String>> issues = [];
+    if (_currentData.phLevel < WaterThresholds.phMin) {
+      issues.add({
+        'label': 'Low pH (${_currentData.phLevel.toStringAsFixed(1)})',
+        'step': 'Add lime or baking soda to neutralise acidic water.',
+      });
+    } else if (_currentData.phLevel > WaterThresholds.phMax) {
+      issues.add({
+        'label': 'High pH (${_currentData.phLevel.toStringAsFixed(1)})',
+        'step': 'Use a water softener or acid-dosing system.',
+      });
+    }
+    if (tdsBad) {
+      issues.add({
+        'label': 'High TDS (${_currentData.tdsLevel.toStringAsFixed(0)} ppm)',
+        'step': 'Install an RO filter or activate the sediment pre-filter.',
+      });
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.criticalRed.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.criticalRed.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.criticalRed,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                '⚠ Water Contamination Detected',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.criticalRed,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...issues.asMap().entries.map((entry) {
+            final i = entry.key;
+            final issue = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      color: AppColors.criticalRed,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${i + 1}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          issue['label']!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.darkGrey,
+                          ),
+                        ),
+                        Text(
+                          '→ ${issue['step']!}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.mediumGrey,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------
+  // Live Water Score HUD — replaces old weather card position
+  // ---------------------------------------------------------------
+  Widget _buildWaterScoreHUD() {
+    final ph = _currentData.phLevel;
+    final tds = _currentData.tdsLevel;
+    final depth = _currentData.currentDepth;
+
+    Color phColor = ph >= WaterThresholds.phMin && ph <= WaterThresholds.phMax
+        ? AppColors.fieldGreen
+        : AppColors.criticalRed;
+    Color tdsColor = tds <= WaterThresholds.tdsMax
+        ? AppColors.fieldGreen
+        : AppColors.criticalRed;
+    Color depthColor = depth > 5 ? AppColors.fieldGreen : AppColors.warningOrange;
+
+    return Row(
+      children: [
+        Expanded(child: _hudTile('pH', ph.toStringAsFixed(1), '6.5–8.5', phColor, Icons.science_rounded)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _hudTile(
+            'TDS',
+            '${tds.toStringAsFixed(0)} ppm',
+            '< 500 ppm',
+            tdsColor,
+            Icons.water_drop_rounded,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _hudTile(
+            'Depth',
+            '${depth.toStringAsFixed(1)} m',
+            'Current',
+            depthColor,
+            Icons.layers_rounded,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _hudTile(
+    String label,
+    String value,
+    String sub,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.darkGrey,
+            ),
+          ),
+          Text(
+            sub,
+            style: TextStyle(
+              fontSize: 10,
+              color: AppColors.mediumGrey,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -623,9 +1305,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required double maxWidth,
   }) {
     return Container(
-      constraints: BoxConstraints(
-        maxWidth: maxWidth,
-      ),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         color: Colors.white,
@@ -718,23 +1398,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildModernWarningCard() {
+    // Determine rain status from weather data
+    final rainAlert = _currentData.rainAlert ?? '';
+    final bool rainExpected =
+        rainAlert.isNotEmpty &&
+        !rainAlert.toLowerCase().contains('no rain') &&
+        (rainAlert.toLowerCase().contains('rain') ||
+         rainAlert.toLowerCase().contains('shower') ||
+         rainAlert.toLowerCase().contains('storm'));
+
+    final String alertTitle = rainExpected
+        ? 'Rain Expected Soon 🌧️'
+        : 'Low Water Level Alert';
+    final String alertBody = rainExpected
+        ? '$rainAlert\nConsider harvesting rainwater from rooftops.'
+        : 'No rain expected in the next 2 days.\nConsider reducing water usage.';
+    final Color alertColor = rainExpected
+        ? AppColors.deepAquiferBlue
+        : AppColors.warningOrange;
+
     return Container(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width,
-      ),
+      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.warningOrange.withOpacity(0.1),
-            AppColors.warningOrange.withOpacity(0.05),
+            alertColor.withOpacity(0.1),
+            alertColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.warningOrange.withOpacity(0.2),
-        ),
+        border: Border.all(color: alertColor.withOpacity(0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -744,11 +1439,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.warningOrange,
+                color: alertColor,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.warning_rounded,
+              child: Icon(
+                rainExpected
+                    ? Icons.umbrella_rounded
+                    : Icons.warning_rounded,
                 color: Colors.white,
                 size: 24,
               ),
@@ -759,7 +1456,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Low Water Level Alert',
+                    alertTitle,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -768,7 +1465,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'No rain expected in the next 2 days.\nConsider reducing water usage.',
+                    alertBody,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -785,15 +1482,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildExtractionStat({required String label, required String value}) {
+  Widget _buildExtractionStat({
+    required String label,
+    required String value,
+    bool isHighlights = false,
+  }) {
     return Flexible(
+      fit: FlexFit.tight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
+            style: const TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.mediumGrey,
             ),
@@ -801,10 +1503,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 15,
+            style: TextStyle(
+              fontSize: isHighlights ? 20 : 16,
               fontWeight: FontWeight.w700,
-              color: AppColors.deepAquiferBlue,
+              color: isHighlights
+                  ? AppColors.fieldGreen
+                  : AppColors.deepAquiferBlue,
             ),
           ),
         ],
@@ -820,9 +1524,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final iconCode = _currentData.weatherIcon ?? '01d';
 
     return Container(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width,
-      ),
+      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -833,10 +1535,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.lightGrey,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.lightGrey, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -949,9 +1648,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: Row(
                     children: [
                       Icon(
-                        hasRain ? Icons.info_rounded : Icons.check_circle_rounded,
+                        hasRain
+                            ? Icons.info_rounded
+                            : Icons.check_circle_rounded,
                         size: 18,
-                        color: hasRain ? AppColors.warningOrange : AppColors.fieldGreen,
+                        color: hasRain
+                            ? AppColors.warningOrange
+                            : AppColors.fieldGreen,
                       ),
                       const SizedBox(width: 8),
                       Expanded(

@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class GroundwaterData {
   final double currentDepth;
   final double totalDepth;
@@ -14,9 +16,17 @@ class GroundwaterData {
   final double voltage;
   final double current;
   final String motorStatus;
+  final double soilMoisture;
+  final String soilMoistureStatus;
   final double extractionRate;
   final String extractionStatus;
   final String lastUpdated;
+  final double sensorDistanceCm; // New field for sensor distance in cm
+  final double flowRateThisSession; // New field for current session flow rate
+  final double
+  totalExtractionPerSession; // New field for total extraction since pump start
+  final double
+  totalLifetimeExtractionL; // New field for total accumulated extraction
 
   // Prediction fields
   final double predictedDepth7Days;
@@ -31,6 +41,9 @@ class GroundwaterData {
   final String? weatherDescription;
   final String? weatherIcon;
   final String? rainAlert;
+
+  // Water Health AI fields
+  final WaterHealthAI? waterHealthAI;
 
   GroundwaterData({
     required this.currentDepth,
@@ -48,6 +61,8 @@ class GroundwaterData {
     required this.voltage,
     required this.current,
     required this.motorStatus,
+    required this.soilMoisture,
+    required this.soilMoistureStatus,
     required this.extractionRate,
     required this.extractionStatus,
     required this.lastUpdated,
@@ -56,15 +71,29 @@ class GroundwaterData {
     required this.predictedDepth30Days,
     required this.trend30Days,
     required this.waterStressLevel,
+    required this.sensorDistanceCm, // New parameter
+    required this.flowRateThisSession,
+    required this.totalExtractionPerSession,
+    required this.totalLifetimeExtractionL,
     this.weatherTemp,
     this.weatherCondition,
     this.weatherDescription,
     this.weatherIcon,
     this.rainAlert,
+    this.waterHealthAI,
   });
 
   // Helper to calculate Power in kW
   double get powerKw => (voltage * current) / 1000;
+
+  // Helper to determine soil moisture status
+  String getSoilMoistureStatus() {
+    if (soilMoisture < 20) return 'Dry';
+    if (soilMoisture < 40) return 'Adequate';
+    if (soilMoisture < 60) return 'Good';
+    if (soilMoisture < 80) return 'Wet';
+    return 'Saturated';
+  }
 
   // Helper to format lastUpdated as HH:MM format
   String get formattedTime {
@@ -100,16 +129,32 @@ class GroundwaterData {
 
     final currentDepth = (sensor['water_depth_m'] ?? 0.0).toDouble();
     final totalDepth = 50.0;
+    final sensorDistanceCm = (sensor['sensor_distance_cm'] ?? 0.0)
+        .toDouble(); // New field
+
+    // Parse new session data
+    final flowRateThisSession =
+        (json['water_extraction']?['flow_rate_this_session'] ?? 0.0).toDouble();
+    final totalExtractionPerSession =
+        (json['water_extraction']?['total_extraction_per_session'] ?? 0.0)
+            .toDouble();
+
+    // Verify where total_lifetime_extraction_L comes from. User example shows root.
+    final totalLifetimeExtractionL =
+        (json['total_lifetime_extraction_L'] ?? 0.0).toDouble();
 
     return GroundwaterData(
       currentDepth: currentDepth,
       totalDepth: totalDepth,
       flowRate: (sensor['flow_rate_L_min'] ?? 0.0).toDouble(),
-      remainingPercentage: '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
+      remainingPercentage:
+          '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
       qualityScore: 80.0,
       qualityStatus: quality['quality_class'] ?? 'Good',
-      currentSession: (json['water_extraction']?['current_session_m3'] ?? 0.0).toDouble(),
-      estimatedExtraction: (json['water_extraction']?['extracted_amount_m3'] ?? 0.0).toDouble(),
+      currentSession: (json['water_extraction']?['current_session_m3'] ?? 0.0)
+          .toDouble(),
+      estimatedExtraction:
+          (json['water_extraction']?['extracted_amount_m3'] ?? 0.0).toDouble(),
       tdsLevel: (sensor['tds_value'] ?? 0.0).toDouble(),
       tdsStatus: 'Safe',
       phLevel: (sensor['ph'] ?? 7.0).toDouble(),
@@ -117,9 +162,16 @@ class GroundwaterData {
       voltage: (sensor['voltage'] ?? 0.0).toDouble(),
       current: (sensor['pump_current_amps'] ?? 0.0).toDouble(),
       motorStatus: motor['motor_status'] ?? 'Off',
+      soilMoisture: (sensor['soil_moisture'] ?? 0.0).toDouble(),
+      soilMoistureStatus:
+          'Loading...', // Will be updated from REST API or calculated
       extractionRate: (sensor['flow_rate_L_min'] ?? 0.0).toDouble(),
       extractionStatus: 'Active',
       lastUpdated: json['timestamp'] ?? DateTime.now().toString(),
+      sensorDistanceCm: sensorDistanceCm, // New field
+      flowRateThisSession: flowRateThisSession,
+      totalExtractionPerSession: totalExtractionPerSession,
+      totalLifetimeExtractionL: totalLifetimeExtractionL,
       // Prediction data
       predictedDepth7Days: (trend['predicted_depth_7days'] ?? 0.0).toDouble(),
       predictedDepth14Days: (trend['predicted_depth_14days'] ?? 0.0).toDouble(),
@@ -132,6 +184,10 @@ class GroundwaterData {
       weatherDescription: weather['description'] ?? 'clear',
       weatherIcon: weather['icon'] ?? '01d',
       rainAlert: weather['rain_alert'] ?? '',
+      // Water Health AI
+      waterHealthAI: json['water_health_ai'] != null
+          ? WaterHealthAI.fromJson(json['water_health_ai'])
+          : null,
     );
   }
 
@@ -141,12 +197,15 @@ class GroundwaterData {
   factory GroundwaterData.fromSensorUpdate(Map<String, dynamic> json) {
     final currentDepth = (json['water_depth_m'] ?? 0.0).toDouble();
     final totalDepth = 50.0;
+    final sensorDistanceCm = (json['sensor_distance_cm'] ?? 0.0)
+        .toDouble(); // New field
 
     return GroundwaterData(
       currentDepth: currentDepth,
       totalDepth: totalDepth,
       flowRate: (json['flow_rate_L_min'] ?? 0.0).toDouble(),
-      remainingPercentage: '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
+      remainingPercentage:
+          '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
       qualityScore: 0.0, // Will be updated from REST API
       qualityStatus: 'Loading...', // Will be updated from REST API
       currentSession: 0.0, // Will be updated from REST API
@@ -158,9 +217,17 @@ class GroundwaterData {
       voltage: (json['voltage'] ?? 0.0).toDouble(),
       current: (json['pump_current_amps'] ?? 0.0).toDouble(),
       motorStatus: 'Unknown', // Will be updated from REST API
+      soilMoisture: (json['soil_moisture'] ?? 0.0).toDouble(),
+      soilMoistureStatus:
+          'Unknown', // Will be updated from REST API or calculated
       extractionRate: (json['flow_rate_L_min'] ?? 0.0).toDouble(),
       extractionStatus: 'Active',
       lastUpdated: json['timestamp'] ?? DateTime.now().toString(),
+      sensorDistanceCm: sensorDistanceCm, // New field
+      flowRateThisSession: (json['flow_rate_L_min'] ?? 0.0).toDouble(),
+      totalExtractionPerSession: 0.0,
+      totalLifetimeExtractionL:
+          0.0, // Sensor update doesn't have this, explicit 0 or persist? Usually explicit 0 if we can't persist here.
       // These will be updated from REST API
       predictedDepth7Days: 0.0,
       predictedDepth14Days: 0.0,
@@ -173,14 +240,19 @@ class GroundwaterData {
   /// Merge raw sensor data from Socket.IO with calculated data from REST API
   /// This keeps sensor values fresh from Socket while preserving calculated data
   GroundwaterData mergeWithSensorUpdate(Map<String, dynamic> sensorData) {
-    final currentDepth = (sensorData['water_depth_m'] ?? this.currentDepth).toDouble();
+    final currentDepth = (sensorData['water_depth_m'] ?? this.currentDepth)
+        .toDouble();
     final totalDepth = this.totalDepth;
+    final sensorDistanceCm =
+        (sensorData['sensor_distance_cm'] ?? this.sensorDistanceCm)
+            .toDouble(); // New field
 
     return GroundwaterData(
       currentDepth: currentDepth,
       totalDepth: totalDepth,
       flowRate: (sensorData['flow_rate_L_min'] ?? this.flowRate).toDouble(),
-      remainingPercentage: '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
+      remainingPercentage:
+          '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
       qualityScore: this.qualityScore,
       qualityStatus: this.qualityStatus,
       currentSession: this.currentSession,
@@ -192,9 +264,23 @@ class GroundwaterData {
       voltage: (sensorData['voltage'] ?? this.voltage).toDouble(),
       current: (sensorData['pump_current_amps'] ?? this.current).toDouble(),
       motorStatus: this.motorStatus,
-      extractionRate: (sensorData['flow_rate_L_min'] ?? this.extractionRate).toDouble(),
+      soilMoisture: (sensorData['soil_moisture'] ?? this.soilMoisture)
+          .toDouble(),
+      soilMoistureStatus: this.soilMoistureStatus,
+      extractionRate: (sensorData['flow_rate_L_min'] ?? this.extractionRate)
+          .toDouble(),
       extractionStatus: this.extractionStatus,
       lastUpdated: sensorData['timestamp'] ?? this.lastUpdated,
+      sensorDistanceCm: sensorDistanceCm, // New field
+      flowRateThisSession:
+          (sensorData['flow_rate_L_min'] ?? this.flowRateThisSession)
+              .toDouble(),
+      totalExtractionPerSession: this
+          .totalExtractionPerSession, 
+          // Note: totalExtractionPerSession is complex to calculate on socket, relying on polling for now.
+      totalLifetimeExtractionL:
+          (sensorData['total_lifetime_extraction_L'] ?? this.totalLifetimeExtractionL).toDouble(), 
+          // Updated from socket payload if available
       predictedDepth7Days: this.predictedDepth7Days,
       predictedDepth14Days: this.predictedDepth14Days,
       predictedDepth30Days: this.predictedDepth30Days,
@@ -205,6 +291,7 @@ class GroundwaterData {
       weatherDescription: this.weatherDescription,
       weatherIcon: this.weatherIcon,
       rainAlert: this.rainAlert,
+      waterHealthAI: this.waterHealthAI,
     );
   }
 
@@ -226,9 +313,15 @@ class GroundwaterData {
       voltage: 230,
       current: 5.2,
       motorStatus: 'Normal',
+      soilMoisture: 28.0,
+      soilMoistureStatus: 'Adequate', // 20-40% = Adequate
       extractionRate: 2.5,
       extractionStatus: 'Optimal',
       lastUpdated: '10 mins ago',
+      sensorDistanceCm: 20.0, // New field with mock value
+      flowRateThisSession: 45.2,
+      totalExtractionPerSession: 1250.5,
+      totalLifetimeExtractionL: 15000.0,
       predictedDepth7Days: 34.8,
       predictedDepth14Days: 34.5,
       predictedDepth30Days: 34.0,
@@ -261,9 +354,15 @@ class GroundwaterData {
       voltage: 230,
       current: 4.8,
       motorStatus: 'Normal',
+      soilMoisture: 32.0,
+      soilMoistureStatus: 'Adequate', // 20-40% = Adequate
       extractionRate: 2.4,
       extractionStatus: 'Optimal',
       lastUpdated: '7 days average',
+      sensorDistanceCm: 22.0, // New field with mock value
+      flowRateThisSession: 40.0,
+      totalExtractionPerSession: 1100.0,
+      totalLifetimeExtractionL: 14000.0,
       predictedDepth7Days: 37.8,
       predictedDepth14Days: 37.5,
       predictedDepth30Days: 37.0,
@@ -276,6 +375,56 @@ class GroundwaterData {
       weatherIcon: '01d',
       rainAlert: 'No rain expected',
     );
+  }
+}
+
+/// AI-generated water health analysis from the backend /mobile/dashboard endpoint
+class WaterHealthAI {
+  final double contaminationScore;
+  final String contaminationLevel;
+  final String diseaseRisk;
+  final List<String> healthRiskTags;
+  final String recommendedAction;
+  final String colorIndicator;
+  final Map<String, String> sensorInsights;
+  final String model;
+
+  WaterHealthAI({
+    required this.contaminationScore,
+    required this.contaminationLevel,
+    required this.diseaseRisk,
+    required this.healthRiskTags,
+    required this.recommendedAction,
+    required this.colorIndicator,
+    required this.sensorInsights,
+    required this.model,
+  });
+
+  factory WaterHealthAI.fromJson(Map<String, dynamic> json) {
+    final rawInsights = json['sensor_insights'] ?? {};
+    final insights = <String, String>{};
+    rawInsights.forEach((k, v) => insights[k.toString()] = v.toString());
+
+    return WaterHealthAI(
+      contaminationScore: (json['contamination_score'] ?? 0.0).toDouble(),
+      contaminationLevel: json['contamination_level'] ?? 'Unknown',
+      diseaseRisk: json['disease_risk'] ?? 'Unknown',
+      healthRiskTags: List<String>.from(json['health_risk_tags'] ?? []),
+      recommendedAction: json['recommended_action'] ?? '',
+      colorIndicator: json['color_indicator'] ?? '#22c55e',
+      sensorInsights: insights,
+      model: json['models'] ?? '',
+    );
+  }
+
+  /// Parse hex color string like '#f97316' to Flutter Color
+  Color get indicatorColor {
+    try {
+      final hex = colorIndicator.replaceAll('#', '');
+      return Color(int.parse('FF$hex', radix: 16));
+    } catch (_) {
+      return const Color(0xFF22c55e);
+    }
   }
 }
 

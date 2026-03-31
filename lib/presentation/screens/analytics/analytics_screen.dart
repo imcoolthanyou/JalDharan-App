@@ -6,6 +6,7 @@ import '../../../core/models/analytics_data.dart';
 import '../../../core/models/groundwater_data.dart';
 import '../../../core/services/dashboard_api_service.dart';
 import '../../../core/services/socket_service.dart';
+import '../../../core/services/water_alert_service.dart';
 import '../../../core/theme/app_colors.dart';
 import 'dart:developer' as developer;
 
@@ -98,6 +99,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         _groundwaterTrend = _createGroundwaterTrendFromData(data);
         _isLoading = false;
       });
+
+      // Trigger notifications for water quality alerts
+      developer.log('📢 Checking water quality from Analytics API data: pH=${data.phLevel}, TDS=${data.tdsLevel}');
+      WaterAlertService.checkAndNotify(
+        ph: data.phLevel,
+        tds: data.tdsLevel,
+      );
     } catch (e) {
       if (!mounted) return;
 

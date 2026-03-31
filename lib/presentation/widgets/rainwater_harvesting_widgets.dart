@@ -240,7 +240,7 @@ class SoilTypeCard extends StatelessWidget {
   }
 }
 
-class CatchmentAreaInput extends StatelessWidget {
+class CatchmentAreaInput extends StatefulWidget {
   final double value;
   final ValueChanged<double> onChanged;
 
@@ -249,6 +249,25 @@ class CatchmentAreaInput extends StatelessWidget {
     required this.value,
     required this.onChanged,
   }) : super(key: key);
+
+  @override
+  State<CatchmentAreaInput> createState() => _CatchmentAreaInputState();
+}
+
+class _CatchmentAreaInputState extends State<CatchmentAreaInput> {
+
+  void _openAreaCalculator() async {
+    // We'll implement the navigation in the parent screen
+    // This will be called from RainwaterHarvestingScreen
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Opening area calculator...'),
+          backgroundColor: AppColors.fieldGreen,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +292,7 @@ class CatchmentAreaInput extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '${value.toStringAsFixed(0)}',
+                '${widget.value.toStringAsFixed(0)}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -294,14 +313,17 @@ class CatchmentAreaInput extends StatelessWidget {
             trackHeight: 8,
           ),
           child: Slider(
-            value: value,
+            value: widget.value,
             min: 100,
             max: 5000,
             divisions: 98,
-            onChanged: onChanged,
+            onChanged: widget.onChanged,
           ),
         ),
         const SizedBox(height: 12),
+        // Calculate Area Button
+       
+        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

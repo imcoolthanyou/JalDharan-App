@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:developer';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/models/rainwater_harvesting_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/rainwater_harvesting_widgets.dart';
 import 'structure_recommendation_screen.dart';
-
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'area_calculator_map.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import '../../../core/services/location_service.dart';
 
 class RainwaterHarvestingScreen extends StatefulWidget {
-  const RainwaterHarvestingScreen({Key? key}) : super(key: key);
+  const RainwaterHarvestingScreen({super.key});
 
   @override
   State<RainwaterHarvestingScreen> createState() =>
@@ -15,19 +23,253 @@ class RainwaterHarvestingScreen extends StatefulWidget {
 
 class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
   late RainwaterHarvestingData _data;
-  late List<SoilType> _soilTypes;
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _roofAreaController =
+      TextEditingController(); // renamed for clarity
+  final TextEditingController _dwellersController = TextEditingController();
+  bool _isFetchingLocation = false;
+  double? _lat;
+  double? _lon;
 
-  // Additional parameters for prediction
-  String _selectedAquiferType = 'Hard Rock (Basalt)';
-  double _depthM = 10.0;
-  double _openSpaceSqm = 4.0;
-  String _existingStructure = 'None';
+  double _openSpaceSqm = 4.0; // This remains in sqm as it's a separate input
+
+  // Conversion factor from square meters to square feet
+  static const double _sqmToSqft = 10.7639;
 
   @override
   void initState() {
     super.initState();
     _data = RainwaterHarvestingData.mockData();
-    _soilTypes = SoilType.getAllSoilTypes();
+    // Reset catchment area to 0 – no pre‑filled value
+    _data = RainwaterHarvestingData(
+      source: _data.source,
+      soilType: _data.soilType,
+      catchmentArea: 0.0,
+      selectedSoilImage: _data.selectedSoilImage,
+    );
+    _roofAreaController.text = ''; // start empty
+  }
+
+  @override
+  void dispose() {
+    _locationController.dispose();
+    _roofAreaController.dispose();
+    _dwellersController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isFetchingLocation = true;
+    });
+
+    try {
+      var status = await Permission.location.request();
+      if (status.isDenied || status.isPermanentlyDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permission is required to fetch address'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location services are disabled.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _lat = position.latitude;
+        _lon = position.longitude;
+      });
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        String city = place.locality ?? place.subAdministrativeArea ?? '';
+        String state = place.administrativeArea ?? '';
+        String address = [
+          city,
+          state,
+        ].where((element) => element.isNotEmpty).join(', ');
+
+        _locationController.text = address;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Location fetched: $address'),
+              backgroundColor: AppColors.fieldGreen,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error fetching location: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingLocation = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _searchLocation(String query) async {
+    if (query.isEmpty) return;
+
+    setState(() {
+      _isFetchingLocation = true;
+    });
+
+    try {
+      List<Location> locations = await locationFromAddress(query);
+      if (locations.isNotEmpty) {
+        Location loc = locations.first;
+        setState(() {
+          _lat = loc.latitude;
+          _lon = loc.longitude;
+        });
+
+        // Also fetch address to standardize it
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          loc.latitude,
+          loc.longitude,
+        );
+
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks.first;
+          String city = place.locality ?? place.subAdministrativeArea ?? '';
+          String state = place.administrativeArea ?? '';
+          String address = [
+            city,
+            state,
+          ].where((element) => element.isNotEmpty).join(', ');
+          _locationController.text = address.isNotEmpty ? address : query;
+        } else {
+          _locationController.text = query;
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Location found: ${_locationController.text}'),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Location not found')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error searching: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingLocation = false;
+        });
+      }
+    }
+  }
+
+  void _openAreaCalculator() async {
+    // Use current location (searched or GPS) or default to New Delhi
+    final defaultLocation = _lat != null && _lon != null
+        ? LatLng(_lat!, _lon!)
+        : const LatLng(28.6139, 77.2090);
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AreaCalculatorMap(
+          onAreaCalculated: (areaInSqft, location) async {
+            setState(() {
+              _roofAreaController.text = areaInSqft.toStringAsFixed(1);
+              _data = RainwaterHarvestingData(
+                source: _data.source,
+                soilType: _data.soilType,
+                catchmentArea: areaInSqft, // store in sqft
+                selectedSoilImage: _data.selectedSoilImage,
+              );
+
+              _lat = location.latitude;
+              _lon = location.longitude;
+            });
+
+            // Fetch address for the new location
+            try {
+              List<Placemark> placemarks = await placemarkFromCoordinates(
+                location.latitude,
+                location.longitude,
+              );
+
+              if (placemarks.isNotEmpty) {
+                Placemark place = placemarks.first;
+                String city =
+                    place.locality ?? place.subAdministrativeArea ?? '';
+                String state = place.administrativeArea ?? '';
+                String address = [
+                  city,
+                  state,
+                ].where((e) => e.isNotEmpty).join(', ');
+
+                setState(() {
+                  _locationController.text = address;
+                });
+              }
+            } catch (e) {
+              // Ignore geocoding errors, we have coordinates
+            }
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Area: ${areaInSqft.toStringAsFixed(1)} sqft, Location updated',
+                  ),
+                  backgroundColor: AppColors.fieldGreen,
+                ),
+              );
+            }
+          },
+          initialPosition: defaultLocation,
+          title: 'Calculate Roof Area',
+        ),
+      ),
+    );
   }
 
   @override
@@ -44,218 +286,177 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Source Section
+              // Location Section
               SectionTitle(
-                title: 'Source',
-                subtitle: 'Where will you collect water from?',
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  SourceToggleButton(
-                    label: 'Roof',
-                    icon: Icons.home,
-                    isSelected: _data.source == 'Roof',
-                    onPressed: () {
-                      setState(() {
-                        _data = RainwaterHarvestingData(
-                          source: 'Roof',
-                          soilType: _data.soilType,
-                          catchmentArea: _data.catchmentArea,
-                          selectedSoilImage: _data.selectedSoilImage,
-                        );
-                      });
-                    },
-                    type: 'roof',
-                  ),
-                  const SizedBox(width: 12),
-                  SourceToggleButton(
-                    label: 'Land',
-                    icon: Icons.terrain,
-                    isSelected: _data.source == 'Land',
-                    onPressed: () {
-                      setState(() {
-                        _data = RainwaterHarvestingData(
-                          source: 'Land',
-                          soilType: _data.soilType,
-                          catchmentArea: _data.catchmentArea,
-                          selectedSoilImage: _data.selectedSoilImage,
-                        );
-                      });
-                    },
-                    type: 'land',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Soil Type Section
-              SectionTitle(
-                title: 'Soil Type',
-                subtitle: 'What is the texture of your soil?',
-              ),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.75,
-                children: List.generate(
-                  _soilTypes.length,
-                  (index) => SoilTypeCard(
-                    name: _soilTypes[index].name,
-                    imageUrl: _soilTypes[index].imageUrl,
-                    isSelected: _data.soilType == _soilTypes[index].name,
-                    onTap: () {
-                      setState(() {
-                        _data = RainwaterHarvestingData(
-                          source: _data.source,
-                          soilType: _soilTypes[index].name,
-                          catchmentArea: _data.catchmentArea,
-                          selectedSoilImage: _soilTypes[index].imageUrl,
-                        );
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Catchment Area Section
-              CatchmentAreaInput(
-                value: _data.catchmentArea,
-                onChanged: (newValue) {
-                  setState(() {
-                    _data = RainwaterHarvestingData(
-                      source: _data.source,
-                      soilType: _data.soilType,
-                      catchmentArea: newValue,
-                      selectedSoilImage: _data.selectedSoilImage,
-                    );
-                  });
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Aquifer Type Section
-              SectionTitle(
-                title: 'Aquifer Type',
-                subtitle: 'What type of aquifer is present?',
+                title: 'Location',
+                subtitle: 'Auto-detect your city and state',
               ),
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
                 ),
-                child: DropdownButton<String>(
-                  value: _selectedAquiferType,
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  items: [
-                    'Hard Rock (Basalt)',
-                    'Hard Rock (Granite)',
-                    'Sedimentary',
-                    'Alluvial',
-                  ].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.darkGrey,
+                child: TypeAheadField<LocationSuggestion>(
+                  controller: _locationController,
+                  builder: (context, controller, focusNode) {
+                    return TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      onSubmitted: _searchLocation,
+                      decoration: InputDecoration(
+                        hintText: 'Enter city or address',
+                        hintStyle: const TextStyle(color: AppColors.mediumGrey),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: _isFetchingLocation
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.fieldGreen,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.search,
+                                  color: AppColors.fieldGreen,
+                                ),
+                          onPressed: () =>
+                              _searchLocation(_locationController.text),
                         ),
                       ),
                     );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedAquiferType = newValue;
-                      });
-                    }
                   },
+                  suggestionsCallback: (pattern) async {
+                    if (pattern.length < 3) return [];
+                    return await LocationService.getSuggestions(pattern);
+                  },
+                  itemBuilder: (context, suggestion) {
+                    return ListTile(
+                      title: Text(suggestion.displayName),
+                      leading: const Icon(
+                        Icons.location_on,
+                        size: 20,
+                        color: AppColors.mediumGrey,
+                      ),
+                    );
+                  },
+                  onSelected: (suggestion) {
+                    _locationController.text = suggestion.displayName;
+                    setState(() {
+                      _lat = suggestion.lat;
+                      _lon = suggestion.lon;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Location selected: ${suggestion.displayName}',
+                        ),
+                        backgroundColor: AppColors.fieldGreen,
+                      ),
+                    );
+                  },
+                  emptyBuilder: (context) => const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text('No locations found'),
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // Water Depth Section
+              // Roof Area Section (was Catchment Area)
               SectionTitle(
-                title: 'Water Depth',
-                subtitle: 'How deep is the groundwater level?',
+                title: 'Roof Area',
+                subtitle: 'Enter the roof area available for harvesting',
               ),
               const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
+                  // Text field container
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    width: 200,
+
                     decoration: BoxDecoration(
-                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '${_depthM.toStringAsFixed(1)} m',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.deepAquiferBlue,
-                              ),
-                            ),
-                            Text(
-                              'Below ground level',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.mediumGrey,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Slider(
-                          value: _depthM,
-                          min: 1.0,
-                          max: 50.0,
-                          divisions: 49,
-                          activeColor: AppColors.deepAquiferBlue,
-                          inactiveColor: AppColors.mediumGrey.withOpacity(0.3),
-                          onChanged: (value) {
-                            setState(() {
-                              _depthM = value;
-                            });
-                          },
-                        ),
-                      ],
+                    child: TextField(
+                      controller: _roofAreaController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        final area = double.tryParse(value) ?? 0.0;
+                        setState(() {
+                          _data = RainwaterHarvestingData(
+                            source: _data.source,
+                            soilType: _data.soilType,
+                            catchmentArea: area, // stored in sqft
+                            selectedSoilImage: _data.selectedSoilImage,
+                          );
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Enter area',
+                        hintStyle: TextStyle(color: AppColors.mediumGrey),
+                        border: InputBorder.none,
+                        suffixText: 'sqft', // changed from m²
+                        suffixStyle: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Map icon button
+                  InkWell(
+                    onTap: _openAreaCalculator,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.fieldGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.map, color: AppColors.fieldGreen),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              // Open Space Section
+              // Number of Dwellers Section
+              SectionTitle(
+                title: 'Number of Dwellers',
+                subtitle: 'How many people live in the household?',
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  // border: Border.all(color: const Color(0xFFE0E0E0)), // Removed boder to match other inputs style
+                ),
+                child: TextField(
+                  controller: _dwellersController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter number',
+                    hintStyle: TextStyle(color: AppColors.mediumGrey),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Open Space Section (still in sqm – kept as is)
               SectionTitle(
                 title: 'Available Open Space',
                 subtitle: 'How much space is available for structure?',
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
                 ),
                 child: TextField(
                   keyboardType: TextInputType.number,
@@ -265,94 +466,124 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: 'Enter area in sq.m (e.g., 4.0)',
-                    hintStyle: TextStyle(
-                      color: AppColors.mediumGrey,
-                    ),
+                    hintText: 'Enter area (e.g., 4.0)',
+                    hintStyle: TextStyle(color: AppColors.mediumGrey),
                     border: InputBorder.none,
-                    suffix: Text(
-                      'sq.m',
-                      style: TextStyle(
-                        color: AppColors.mediumGrey,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    suffixText: 'sq.ft',
+                    suffixStyle: TextStyle(
+                      color: AppColors.mediumGrey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
 
-              // Existing Structure Section
-              SectionTitle(
-                title: 'Existing Structure',
-                subtitle: 'Do you have any existing water structure?',
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
-                ),
-                child: DropdownButton<String>(
-                  value: _existingStructure,
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  items: [
-                    'None',
-                    'Well',
-                    'Boring',
-                    'Pond',
-                    'Tank',
-                  ].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.darkGrey,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _existingStructure = newValue;
-                      });
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Info Card
-              InfoCard(
-                title: 'Why is this important?',
-                description:
-                    'Providing accurate details helps us recommend the most cost-effective and efficient structure for your farm.',
-              ),
-              const SizedBox(height: 32),
-
               // Recommend Button
               PrimaryButton(
                 label: 'Recommend Structure',
                 icon: Icons.water_drop,
-                onPressed: () {
+                onPressed: () async {
+                  // 1. Auto-fetch location if missing
+                  if (_lat == null || _lon == null) {
+                    await _getCurrentLocation();
+                  }
+
+                  // 2. Validate Inputs
+                  final roofArea =
+                      double.tryParse(_roofAreaController.text) ?? 0.0;
+                  final dwellers = int.tryParse(_dwellersController.text) ?? 0;
+
+                  if (_lat == null || _lon == null) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fetch your location first'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  if (roofArea <= 0) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter a valid roof area (> 0)'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  if (dwellers <= 0) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Please enter a valid number of dwellers (> 0)',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  // 3. User requested check: Roof Area vs Open Space
+                  // Warning if Roof Area is significantly larger than Open Space (just a heuristic check)
+                  // converting _openSpaceSqm (which is in sqm) to sqft for comparison with roofArea (sqft)
+                  double openSpaceSqft = _openSpaceSqm * _sqmToSqft;
+                  if (roofArea > openSpaceSqft) {
+                    // Check if this is a blocking condition or just a warning?
+                    // User said "basic check... will be fine".
+                    // Let's show a warning snackbar but allow proceeding, or block?
+                    // "if roof size is less than open space" -> implies this is the DESIRED state.
+                    // So if roof > open space, it might be an issue.
+                    // I'll block it for now based on "check for the page".
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Roof area cannot be larger than available open space.',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  // Prepare and print the data payload
+                  final payload = {
+                    'lat': _lat,
+                    'lon': _lon,
+                    'roof_area_sqm': _data.catchmentArea / _sqmToSqft,
+                    'open_space_sqm': _openSpaceSqm / _sqmToSqft,
+                    'existing_structure': 'None',
+                    'number_of_dwellers': dwellers,
+                  };
+                  log('Data sending to backend: ${jsonEncode(payload)}');
+
+                  if (!context.mounted) return;
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => StructureRecommendationScreen(
-                        source: _data.source,
-                        soilType: _data.soilType,
-                        catchmentArea: _data.catchmentArea,
-                        aquiferType: _selectedAquiferType,
-                        depthM: _depthM,
-                        openSpaceSqm: _openSpaceSqm,
-                        existingStructure: _existingStructure,
+                        lat: _lat!,
+                        lon: _lon!,
+                        roofAreaSqm:
+                            _data.catchmentArea /
+                            _sqmToSqft, // convert sqft to sqm
+                        openSpaceSqm:
+                            _openSpaceSqm / _sqmToSqft, // convert sqft to sqm
+                        numberOfDwellers: dwellers,
+                        existingStructure: 'None',
                       ),
                     ),
                   );

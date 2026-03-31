@@ -37,18 +37,18 @@ class SocketService with ChangeNotifier {
     isConnecting = true;
     notifyListeners();
 
-    developer.log('🔌 Initializing Socket.IO connection to ${ApiConfig.baseUrl}');
-
-    socket = IO.io(
-      ApiConfig.baseUrl,
-      IO.OptionBuilder()
-          .setTransports(['websocket']) // Use WebSocket transport
-          .enableAutoConnect() // Auto reconnect on disconnect
-          .setReconnectionAttempts(double.infinity) // Retry forever
-          .setReconnectionDelay(1000) // Delay between reconnection attempts
-          .setReconnectionDelayMax(5000) // Max delay
-          .build(),
+    developer.log(
+      '🔌 Initializing Socket.IO connection to ${ApiConfig.baseUrl}',
     );
+
+    // Updated options map - more reliable across Android/iOS than OptionBuilder
+    socket = IO.io(ApiConfig.baseUrl, <String, dynamic>{
+      'transports': ['websocket'], // Use WebSocket transport
+      'autoConnect': true, // Auto reconnect on disconnect
+      'reconnectionAttempts': double.infinity, // Retry forever
+      'reconnectionDelay': 1000, // Delay between reconnection attempts
+      'reconnectionDelayMax': 5000, // Max delay
+    });
 
     // ===== Connection Events =====
     socket.onConnect((_) {
@@ -149,6 +149,7 @@ class SocketService with ChangeNotifier {
   }
 
   /// Dispose resources
+  @override
   void dispose() {
     disconnect();
     _sensorUpdateListeners.clear();
@@ -156,4 +157,3 @@ class SocketService with ChangeNotifier {
     super.dispose();
   }
 }
-

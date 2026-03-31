@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart'; // Add url_launcher
 import '../../../core/models/community_data.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -110,9 +112,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       labelStyle: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.mediumGrey,
+                        color: isSelected ? Colors.white : AppColors.mediumGrey,
                       ),
                       side: BorderSide(
                         color: isSelected
@@ -177,13 +177,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   Widget _buildArticleCard(KnowledgeArticle article) {
     return GestureDetector(
       onTap: () {
-        // Navigate to article detail
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Opening: ${article.title}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        _launchRandomPdf(context, article.title);
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -209,9 +203,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 color: AppColors.lightGrey,
                 child: Stack(
                   children: [
-                    Image.asset(
+                    Image.network(
                       article.imageUrl,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.fill,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: AppColors.fieldGreen.withOpacity(0.2),
@@ -219,8 +213,22 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             child: Icon(
                               Icons.image_outlined,
                               size: 48,
-                              color:
-                                  AppColors.fieldGreen.withOpacity(0.5),
+                              color: AppColors.fieldGreen.withOpacity(0.5),
+                            ),
+                          ),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: AppColors.lightGrey,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: AppColors.deepAquiferBlue,
                             ),
                           ),
                         );
@@ -232,8 +240,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
-                            _articles[_articles.indexOf(article)] =
-                                KnowledgeArticle(
+                            _articles[_articles.indexOf(
+                              article,
+                            )] = KnowledgeArticle(
                               id: article.id,
                               title: article.title,
                               description: article.description,
@@ -286,8 +295,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.deepAquiferBlue
-                                .withOpacity(0.1),
+                            color: AppColors.deepAquiferBlue.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -341,5 +349,35 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _launchRandomPdf(BuildContext context, String title) async {
+    final List<String> pdfUrls = [
+      'https://cgwb.gov.in/cgwbpnm/public/uploads/documents/168613326251844776file.pdf',
+      'https://ndpublisher.in/admin/issues/IJAEBv13n3c.pdf',
+    ];
+
+    final random = Random();
+    final urlString = pdfUrls[random.nextInt(pdfUrls.length)];
+    final uri = Uri.parse(urlString);
+
+    try {
+      // Try external application first (best for PDFs)
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        // Fallback to platform default (let OS decide)
+        if (!await launchUrl(uri, mode: LaunchMode.platformDefault)) {
+          throw 'Could not launch $urlString';
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open PDF: $e'),
+            backgroundColor: AppColors.criticalRed,
+          ),
+        );
+      }
+    }
   }
 }
