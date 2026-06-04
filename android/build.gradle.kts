@@ -3,11 +3,15 @@ allprojects {
         google()
         mavenCentral()
         jcenter() // Fallback for older AR/Sceneform artifacts
+        maven {
+            url = uri("https://maven.google.com")
+        }
     }
 
-    // Force specific Sceneform version to avoid metadata.xml fetch for '+' versioning
+    // Force specific versions to avoid metadata.xml fetch for '+' versioning
     configurations.all {
         resolutionStrategy {
+            force("com.google.ar:core:1.33.0")
             force("com.google.ar.sceneform:core:1.15.0")
             force("com.google.ar.sceneform.ux:sceneform-ux:1.15.0")
         }

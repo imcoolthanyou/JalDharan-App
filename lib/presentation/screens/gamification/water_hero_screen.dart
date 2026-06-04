@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/gamification_data.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import 'widgets/proof_upload_dialog.dart';
 import 'dart:io';
 
@@ -71,7 +72,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
 
         // Update rank dynamically
         try {
-          RankingUser currentUser = _rankings.firstWhere((r) => r.isCurrentUser);
+          RankingUser currentUser = _rankings.firstWhere(
+            (r) => r.isCurrentUser,
+          );
           currentUser.points = _totalPoints;
           _rankings.sort((a, b) => b.points.compareTo(a.points));
           // Re-assign positions based on new sorted order
@@ -86,9 +89,315 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Task completed! +${task.points} points earned'),
+        content: Text(
+          AppLocalizations.of(context)!
+              .get('task_completed_points')
+              .replaceAll('{points}', '${task.points}'),
+        ),
         backgroundColor: AppColors.fieldGreen,
         duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showLeaderboardDialog() {
+    // Leaderboard data — pos 1 is Rampur Village, pos 12 is current user
+    final List<Map<String, dynamic>> allLeaders = [
+      {
+        'pos': 1,
+        'name': 'Rampur Village',
+        'initials': 'RV',
+        'points': 5240,
+        'trend': 'up',
+      },
+      {
+        'pos': 2,
+        'name': 'Arjun Sharma',
+        'initials': 'AS',
+        'points': 4820,
+        'trend': 'up',
+      },
+      {
+        'pos': 3,
+        'name': 'Priya Patel',
+        'initials': 'PP',
+        'points': 4610,
+        'trend': 'down',
+      },
+      {
+        'pos': 4,
+        'name': 'Ravi Kumar',
+        'initials': 'RK',
+        'points': 4390,
+        'trend': 'up',
+      },
+      {
+        'pos': 5,
+        'name': 'Sunita Devi',
+        'initials': 'SD',
+        'points': 4150,
+        'trend': 'down',
+      },
+      {
+        'pos': 6,
+        'name': 'Mohan Singh',
+        'initials': 'MS',
+        'points': 3980,
+        'trend': 'up',
+      },
+      {
+        'pos': 7,
+        'name': 'Kavita Rao',
+        'initials': 'KR',
+        'points': 3740,
+        'trend': 'down',
+      },
+      {
+        'pos': 8,
+        'name': 'Deepak Verma',
+        'initials': 'DV',
+        'points': 3520,
+        'trend': 'up',
+      },
+      {
+        'pos': 9,
+        'name': 'Anita Gupta',
+        'initials': 'AG',
+        'points': 3310,
+        'trend': 'down',
+      },
+      {
+        'pos': 10,
+        'name': 'Vijay Nair',
+        'initials': 'VN',
+        'points': 3090,
+        'trend': 'up',
+      },
+      {
+        'pos': 11,
+        'name': 'Meena Joshi',
+        'initials': 'MJ',
+        'points': 2870,
+        'trend': 'down',
+      },
+      {
+        'pos': 12,
+        'name': 'You',
+        'initials': 'ME',
+        'points': _totalPoints,
+        'trend': 'up',
+        'isMe': true,
+      },
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 540),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      AppLocalizations.of(context)!.get('leaderboard_title'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white70,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Table header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 36,
+                      child: Text(
+                        AppLocalizations.of(context)!.get('leaderboard_rank'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.mediumGrey,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context)!.get('leaderboard_name'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.mediumGrey,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      AppLocalizations.of(context)!.get('leaderboard_points'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.mediumGrey,
+                      ),
+                    ),
+                    const SizedBox(width: 28),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Table rows
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: allLeaders.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final leader = allLeaders[index];
+                    final isMe = leader['isMe'] == true;
+                    final isTop3 = leader['pos'] <= 3;
+                    final isUp = leader['trend'] == 'up';
+                    final medalColors = [
+                      const Color(0xFFFFD700),
+                      const Color(0xFFC0C0C0),
+                      const Color(0xFFCD7F32),
+                    ];
+                    return Container(
+                      color: isMe
+                          ? AppColors.deepAquiferBlue.withOpacity(0.06)
+                          : null,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 36,
+                            child: isTop3
+                                ? Icon(
+                                    Icons.emoji_events_rounded,
+                                    color: medalColors[leader['pos'] - 1],
+                                    size: 20,
+                                  )
+                                : Text(
+                                    '${leader['pos']}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: isMe
+                                          ? AppColors.deepAquiferBlue
+                                          : AppColors.mediumGrey,
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: isMe
+                                  ? AppColors.deepAquiferBlue
+                                  : AppColors.deepAquiferBlue.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                leader['initials'],
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isMe
+                                      ? Colors.white
+                                      : AppColors.deepAquiferBlue,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              leader['name'],
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isMe
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: isMe
+                                    ? AppColors.deepAquiferBlue
+                                    : AppColors.darkGrey,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${leader['points']}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: isMe
+                                  ? AppColors.deepAquiferBlue
+                                  : AppColors.darkGrey,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            isUp
+                                ? Icons.arrow_upward_rounded
+                                : Icons.arrow_downward_rounded,
+                            size: 16,
+                            color: isUp
+                                ? AppColors.fieldGreen
+                                : AppColors.criticalRed,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -100,9 +409,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Water Hero',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.get('gamification'),
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: AppColors.darkGrey,
@@ -116,13 +425,13 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
             // Hero Card with Points and Level
             Padding(
               padding: const EdgeInsets.all(16),
-              child: _buildHeroCard(),
+              child: _buildHeroCard(context),
             ),
 
             // Penalty Alert
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildPenaltyAlert(),
+              child: _buildPenaltyAlert(context),
             ),
 
             const SizedBox(height: 24),
@@ -138,9 +447,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                     size: 24,
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'Daily Assignment',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.get('daily_assignment'),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: AppColors.darkGrey,
@@ -162,7 +471,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                     padding: EdgeInsets.only(
                       bottom: index < _dailyTasks.length - 1 ? 16 : 0,
                     ),
-                    child: _buildTaskCard(_dailyTasks[index]),
+                    child: _buildTaskCard(context, _dailyTasks[index]),
                   ),
                 ),
               ),
@@ -184,9 +493,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                         size: 24,
                       ),
                       const SizedBox(width: 10),
-                      const Text(
-                        'Your Rank',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.get('your_rank'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.darkGrey,
@@ -195,10 +504,10 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                     ],
                   ),
                   TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      'View All',
-                      style: TextStyle(
+                    onPressed: () => _showLeaderboardDialog(),
+                    child: Text(
+                      AppLocalizations.of(context)!.get('view_all'),
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppColors.deepAquiferBlue,
@@ -234,16 +543,13 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.deepAquiferBlue,
-            AppColors.tealStart,
-          ],
+          colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -261,14 +567,10 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.shield_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
+                const Icon(Icons.shield_rounded, color: Colors.white, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  'RANK: ${_userProfile.rank}',
+                  '${AppLocalizations.of(context)!.get('rank_label')}: ${_userProfile.rank}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -294,9 +596,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                   color: Colors.white,
                 ),
               ),
-              const Text(
-                'TOTAL WATER POINTS',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.get('total_water_points'),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -313,7 +615,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Level ${_userProfile.level}',
+                '${AppLocalizations.of(context)!.get('level_label')} ${_userProfile.level}',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -321,7 +623,10 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 ),
               ),
               Text(
-                '${_userProfile.levelProgress}% to Level ${_userProfile.level + 1}',
+                AppLocalizations.of(context)!
+                    .get('level_progress')
+                    .replaceAll('{progress}', '${_userProfile.levelProgress}')
+                    .replaceAll('{next}', '${_userProfile.level + 1}'),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -347,15 +652,13 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
     );
   }
 
-  Widget _buildPenaltyAlert() {
+  Widget _buildPenaltyAlert(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.criticalRed.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.criticalRed.withOpacity(0.2),
-        ),
+        border: Border.all(color: AppColors.criticalRed.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,9 +671,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              const Text(
-                'PENALTY ALERT',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.get('penalty_alert'),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.criticalRed,
@@ -381,7 +684,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '-50 pts if daily extraction exceeds 500L.',
+            AppLocalizations.of(context)!.get('penalty_desc'),
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -390,7 +693,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Current Usage: 320L / 500L',
+            '${AppLocalizations.of(context)!.get('current_value')}: ${_userProfile.totalPoints} pts',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -402,7 +705,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
     );
   }
 
-  Widget _buildTaskCard(DailyTask task) {
+  Widget _buildTaskCard(BuildContext context, DailyTask task) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -426,10 +729,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 width: double.infinity,
                 height: 180,
                 color: AppColors.lightGrey,
-                child: Image.file(
-                  File(task.proofPath!),
-                  fit: BoxFit.cover,
-                ),
+                child: Image.file(File(task.proofPath!), fit: BoxFit.cover),
               )
             else
               Container(
@@ -438,9 +738,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 color: AppColors.lightGrey,
                 child: Stack(
                   children: [
-                    Container(
-                      color: AppColors.fieldGreen.withOpacity(0.2),
-                    ),
+                    Container(color: AppColors.fieldGreen.withOpacity(0.2)),
                     Center(
                       child: Icon(
                         Icons.image_rounded,
@@ -480,7 +778,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    task.title,
+                    AppLocalizations.of(context)!.get(task.titleKey),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -489,7 +787,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    task.description,
+                    AppLocalizations.of(context)!.get(task.descKey),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -502,9 +800,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Accept Task?',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.get('accept_task'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: AppColors.darkGrey,
@@ -515,21 +813,24 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () => _handleTaskAcceptance(task, false),
+                                onPressed: () =>
+                                    _handleTaskAcceptance(task, false),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: AppColors.mediumGrey,
                                   side: const BorderSide(
                                     color: AppColors.mediumGrey,
                                   ),
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
-                                child: const Text(
-                                  'No',
-                                  style: TextStyle(
+                                child: Text(
+                                  AppLocalizations.of(context)!.get('no'),
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -539,18 +840,21 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () => _handleTaskAcceptance(task, true),
+                                onPressed: () =>
+                                    _handleTaskAcceptance(task, true),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.deepAquiferBlue,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Yes',
-                                  style: TextStyle(
+                                child: Text(
+                                  AppLocalizations.of(context)!.get('yes'),
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -580,9 +884,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                             size: 18,
                           ),
                           const SizedBox(width: 6),
-                          const Text(
-                            'Task Completed',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.get('task_completed'),
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: AppColors.fieldGreen,
@@ -647,10 +951,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
               decoration: BoxDecoration(
                 color: AppColors.deepAquiferBlue.withOpacity(0.1),
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.deepAquiferBlue,
-                  width: 2,
-                ),
+                border: Border.all(color: AppColors.deepAquiferBlue, width: 2),
               ),
               child: Center(
                 child: Text(

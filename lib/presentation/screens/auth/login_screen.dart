@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/wave_clipper.dart';
-
+import 'onboarding_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,10 +41,12 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login successful!')),
-          );
-          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Login successful!')));
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       } catch (e) {
         if (mounted) {
@@ -64,45 +65,34 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
+    // Capture messenger before async gap to avoid deactivated widget error
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     try {
-      final result = await _authService.signInWithGoogle();
-
-      if (result == null) {
-        // User cancelled the sign-in
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
+      final isNewUser = await _authService.signInWithGoogleAndBackend();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Google sign-in successful!')),
-        );
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        if (isNewUser) {
+          // New user — show onboarding
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+            (route) => false,
+          );
+        } else {
+          // Returning user — go straight to home
+          navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+        }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -128,7 +118,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Apple sign-in successful!')),
         );
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
       if (mounted) {
@@ -179,8 +171,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Email is required';
                             }
-                            if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                                .hasMatch(value)) {
+                            if (!RegExp(
+                              r'^[^@]+@[^@]+\.[^@]+',
+                            ).hasMatch(value)) {
                               return 'Please enter a valid email';
                             }
                             return null;
@@ -333,9 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Container(
           width: double.infinity,
           height: 320,
-          decoration: const BoxDecoration(
-            gradient: AppColors.aquaFlowGradient,
-          ),
+          decoration: const BoxDecoration(gradient: AppColors.aquaFlowGradient),
         ),
         // Wavy divider at the bottom
         Positioned(
@@ -346,9 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
             clipper: BottomWaveClipper(),
             child: Container(
               height: 120,
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-              ),
+              decoration: const BoxDecoration(color: AppColors.white),
             ),
           ),
         ),
@@ -452,4 +441,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

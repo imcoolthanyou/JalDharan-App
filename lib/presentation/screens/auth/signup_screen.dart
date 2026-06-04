@@ -4,7 +4,7 @@ import '../../../core/services/auth_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/wave_clipper.dart';
-
+import 'onboarding_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -36,140 +36,98 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_formKey.currentState!.validate()) {
       if (!_agreeToTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please agree to terms and conditions'),
-          ),
+          const SnackBar(content: Text('Please agree to terms and conditions')),
         );
         return;
       }
 
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() => _isLoading = true);
+
+      // Capture before async gap to avoid deactivated widget errors
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
 
       try {
-        // Create user account
         await _authService.signUpWithEmail(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
-
-        // Update user profile with display name
-        await _authService.updateUserProfile(displayName: _nameController.text.trim());
-
-        // Send email verification
+        await _authService.updateUserProfile(
+          displayName: _nameController.text.trim(),
+        );
         await _authService.sendEmailVerification();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created! A verification email has been sent.'),
-            ),
+          // New email sign-up always goes to onboarding
+          // Use pushAndRemoveUntil to clear the stack so authStateChanges
+          // rebuild in main.dart cannot override this navigation
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+            (route) => false,
           );
-          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        messenger.showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
       } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
 
   Future<void> _handleGoogleSignUp() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     try {
-      final result = await _authService.signInWithGoogle();
-
-      if (result == null) {
-        // User cancelled the sign-in
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
+      final isNewUser = await _authService.signInWithGoogleAndBackend();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sign up with Google successful!')),
-        );
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        if (isNewUser) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+            (route) => false,
+          );
+        } else {
+          navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+        }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _handleAppleSignUp() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     try {
       final result = await _authService.signInWithApple();
-
       if (result == null) {
-        // User cancelled the sign-in
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        if (mounted) setState(() => _isLoading = false);
         return;
       }
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sign up with Apple successful!')),
-        );
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        navigator.pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -188,7 +146,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 children: [
                   Row(
                     children: [
-
                       Text(
                         'Create Account',
                         style: Theme.of(context).textTheme.headlineMedium,
@@ -232,8 +189,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Email is required';
                             }
-                            if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                                .hasMatch(value)) {
+                            if (!RegExp(
+                              r'^[^@]+@[^@]+\.[^@]+',
+                            ).hasMatch(value)) {
                               return 'Please enter a valid email';
                             }
                             return null;
@@ -422,9 +380,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         Container(
           width: double.infinity,
           height: 280,
-          decoration: const BoxDecoration(
-            gradient: AppColors.aquaFlowGradient,
-          ),
+          decoration: const BoxDecoration(gradient: AppColors.aquaFlowGradient),
         ),
         // Wavy divider at the bottom
         Positioned(
@@ -435,9 +391,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             clipper: BottomWaveClipper(),
             child: Container(
               height: 120,
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-              ),
+              decoration: const BoxDecoration(color: AppColors.white),
             ),
           ),
         ),
@@ -541,4 +495,3 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
-

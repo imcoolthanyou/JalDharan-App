@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_3d_controller/flutter_3d_controller.dart';
 import '../../../core/models/groundwater_data.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class HomeDigitalTwin extends StatefulWidget {
   final GroundwaterData initialData;
 
-  const HomeDigitalTwin({
-    super.key,
-    required this.initialData,
-  });
+  const HomeDigitalTwin({super.key, required this.initialData});
 
   @override
   State<HomeDigitalTwin> createState() => _HomeDigitalTwinState();
@@ -30,12 +28,8 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
 
   void _onModelLoaded() {
     if (_controller.onModelLoaded.value) {
-      debugPrint('3D Model loaded successfully - starting rotation');
-      try {
-        _controller.startRotation(rotationSpeed: 15);
-      } catch (e) {
-        debugPrint('Error starting rotation: $e');
-      }
+      debugPrint('3D Model loaded successfully');
+      // Model is fixed in position - no auto-rotation
     }
   }
 
@@ -53,26 +47,40 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
   @override
   void dispose() {
     _controller.onModelLoaded.removeListener(_onModelLoaded);
-    try {
-      _controller.stopRotation();
-    } catch (e) {
-      debugPrint('Error stopping rotation: $e');
-    }
     super.dispose();
   }
 
+  /// Derive quality label from actual sensor values (pH + TDS)
+  /// so it always reflects real data regardless of backend field
   String _formatWaterQuality(String status) {
+    final ph = _currentData.phLevel;
+    final tds = _currentData.tdsLevel;
+
+    // If we have real sensor data, compute quality from it
+    if (ph > 0 && tds > 0) {
+      final bool phOk = ph >= 6.5 && ph <= 8.5;
+      final bool tdsOk = tds <= 500;
+
+      if (phOk && tdsOk && tds <= 300) return '✅ Excellent';
+      if (phOk && tdsOk) return '✅ Good';
+      if (!phOk && !tdsOk) return '❌ Very Poor';
+      return '⚠️ Fair';
+    }
+
+    // Fallback to status string from backend
     switch (status.toLowerCase()) {
       case 'excellent':
         return '✅ Excellent';
       case 'good':
         return '✅ Good';
+      case 'fair':
+        return '⚠️ Fair';
       case 'poor':
         return '⚠️ Poor';
       case 'very_poor':
         return '❌ Very Poor';
       default:
-        return '❓ Unknown';
+        return '⚠️ Fair';
     }
   }
 
@@ -110,7 +118,10 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
               children: [
                 // Water Quality
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF003366).withOpacity(0.85),
                     border: Border.all(
@@ -129,9 +140,9 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '💧 Quality',
-                        style: TextStyle(
+                      Text(
+                        '💧 ${AppLocalizations.of(context)!.get('quality_indicator')}',
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -153,7 +164,10 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
 
                 // Water Depth
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF003366).withOpacity(0.85),
                     border: Border.all(
@@ -172,9 +186,9 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '⏬ Depth',
-                        style: TextStyle(
+                      Text(
+                        '⏬ ${AppLocalizations.of(context)!.get('depth_indicator')}',
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -196,7 +210,10 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
 
                 // Pump Status
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF003366).withOpacity(0.85),
                     border: Border.all(
@@ -215,9 +232,9 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '⚡ Pump',
-                        style: TextStyle(
+                      Text(
+                        '⚡ ${AppLocalizations.of(context)!.get('pump_indicator')}',
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -243,4 +260,3 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
     );
   }
 }
-

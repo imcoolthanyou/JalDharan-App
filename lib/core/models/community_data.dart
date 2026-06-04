@@ -82,16 +82,22 @@ class KnowledgeArticle {
   final int id;
   final String title;
   final String description;
+  final String titleKey;
+  final String descKey;
   final String category;
+  final String categoryKey;
   final String imageUrl;
-  final int readTime; // in minutes
+  final int readTime;
   final bool isFavorite;
 
   KnowledgeArticle({
     required this.id,
     required this.title,
     required this.description,
+    required this.titleKey,
+    required this.descKey,
     required this.category,
+    required this.categoryKey,
     required this.imageUrl,
     required this.readTime,
     this.isFavorite = false,
@@ -104,7 +110,10 @@ class KnowledgeArticle {
         title: 'Groundwater Recharge Techniques',
         description:
             'Learn effective methods to recharge groundwater and improve water availability in your region.',
+        titleKey: 'article_1_title',
+        descKey: 'article_1_desc',
         category: 'Water Management',
+        categoryKey: 'cat_water_management',
         imageUrl:
             'https://5.imimg.com/data5/SELLER/Default/2021/11/AC/XG/GV/2793594/img-20160710-113917.jpg',
         readTime: 8,
@@ -114,7 +123,10 @@ class KnowledgeArticle {
         title: 'Rainwater Harvesting Systems',
         description:
             'Complete guide to designing and implementing rainwater harvesting systems for agricultural use.',
+        titleKey: 'article_2_title',
+        descKey: 'article_2_desc',
         category: 'Harvesting',
+        categoryKey: 'cat_harvesting',
         imageUrl:
             'https://5.imimg.com/data5/SELLER/Default/2023/10/354350364/SL/UP/OO/2402236/rain-water-percolation-tank.jpeg',
         readTime: 12,
@@ -124,7 +136,10 @@ class KnowledgeArticle {
         title: 'Water Quality Testing at Home',
         description:
             'Simple methods to test water quality and understand what different measurements mean.',
+        titleKey: 'article_3_title',
+        descKey: 'article_3_desc',
         category: 'Quality',
+        categoryKey: 'cat_quality',
         imageUrl:
             'https://live.staticflickr.com/8508/8423016623_ff645c3908_b.jpg',
         readTime: 6,
@@ -134,7 +149,10 @@ class KnowledgeArticle {
         title: 'Sustainable Irrigation Practices',
         description:
             'Optimize irrigation to reduce water wastage while maintaining crop productivity.',
+        titleKey: 'article_4_title',
+        descKey: 'article_4_desc',
         category: 'Irrigation',
+        categoryKey: 'cat_irrigation',
         imageUrl:
             'https://40800710.delivery.rocketcdn.me/wp-content/uploads/2018/11/above-ground-vs-underground-water-storage-tanks-the-pros-and-cons-image-01.jpg',
         readTime: 10,
@@ -144,7 +162,10 @@ class KnowledgeArticle {
         title: 'Soil Moisture Management',
         description:
             'Understand soil moisture levels and their impact on crop growth and water conservation.',
+        titleKey: 'article_5_title',
+        descKey: 'article_5_desc',
         category: 'Soil',
+        categoryKey: 'cat_soil',
         imageUrl:
             'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSPieiBHwD0MOTYjImx5K66biJuhp2FiRtWpw&s',
         readTime: 7,
@@ -154,7 +175,10 @@ class KnowledgeArticle {
         title: 'Seasonal Water Planning Guide',
         description:
             'Plan water usage for different seasons and prepare for water scarcity periods.',
+        titleKey: 'article_6_title',
+        descKey: 'article_6_desc',
         category: 'Planning',
+        categoryKey: 'cat_planning',
         imageUrl:
             'https://www.tirupatifence.com/uploaded-files/category/images/thumbs/Gabion-Box-thumbs-500X500.jpg',
         readTime: 9,

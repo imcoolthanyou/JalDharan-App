@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/providers/language_provider.dart';
+import '../../../core/utils/app_icons.dart';
+import '../../../core/services/auth_service.dart';
 
 class CommunitySettingsScreen extends StatefulWidget {
   const CommunitySettingsScreen({Key? key}) : super(key: key);
@@ -21,9 +28,9 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Settings',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.get('app_settings'),
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: AppColors.darkGrey,
@@ -47,7 +54,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'App Settings',
+                  AppLocalizations.of(context)!.get('app_settings'),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -56,8 +63,11 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildSettingTile(
-                  title: 'Notifications',
-                  subtitle: 'Receive updates about water levels and tasks',
+                  context: context,
+                  title: AppLocalizations.of(context)!.get('notifications'),
+                  subtitle: AppLocalizations.of(
+                    context,
+                  )!.get('enable_notifications_desc'),
                   value: _notificationsEnabled,
                   onChanged: (value) {
                     setState(() => _notificationsEnabled = value);
@@ -65,8 +75,11 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildSettingTile(
-                  title: 'Data Sharing',
-                  subtitle: 'Share your data to help improve predictions',
+                  context: context,
+                  title: AppLocalizations.of(context)!.get('data_sharing'),
+                  subtitle: AppLocalizations.of(
+                    context,
+                  )!.get('data_sharing_desc'),
                   value: _dataSharing,
                   onChanged: (value) {
                     setState(() => _dataSharing = value);
@@ -74,12 +87,55 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildSettingTile(
-                  title: 'Community Updates',
-                  subtitle: 'Receive newsletters about community activities',
+                  context: context,
+                  title: AppLocalizations.of(context)!.get('community_updates'),
+                  subtitle: AppLocalizations.of(
+                    context,
+                  )!.get('community_updates_desc'),
                   value: _communityUpdates,
                   onChanged: (value) {
                     setState(() => _communityUpdates = value);
                   },
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 32, indent: 16, endIndent: 16),
+
+          // Language Section
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.get('language'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkGrey,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Consumer<LanguageProvider>(
+                  builder: (context, languageProvider, _) => Column(
+                    children: [
+                      _buildLanguageOptionTile(
+                        languageName: 'English',
+                        languageCode: 'en',
+                        isSelected: languageProvider.currentLanguage == 'en',
+                        onTap: () => languageProvider.changeLanguage('en'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLanguageOptionTile(
+                        languageName: 'हिंदी',
+                        languageCode: 'hi',
+                        isSelected: languageProvider.currentLanguage == 'hi',
+                        onTap: () => languageProvider.changeLanguage('hi'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -94,7 +150,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'About',
+                  AppLocalizations.of(context)!.get('about'),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -103,23 +159,27 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildSettingButton(
-                  icon: Icons.info_outlined,
-                  title: 'About Jal Dharan',
-                  subtitle: 'Learn about our mission and vision',
+                  icon: AppIcons.info,
+                  title: AppLocalizations.of(context)!.get('about_jal_dharan'),
+                  subtitle: AppLocalizations.of(
+                    context,
+                  )!.get('about_jal_dharan_desc'),
                   onTap: () {},
                 ),
                 const SizedBox(height: 12),
                 _buildSettingButton(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                  subtitle: 'Review our privacy practices',
+                  icon: AppIcons.lock,
+                  title: AppLocalizations.of(context)!.get('privacy_policy'),
+                  subtitle: AppLocalizations.of(
+                    context,
+                  )!.get('privacy_policy_desc'),
                   onTap: () {},
                 ),
                 const SizedBox(height: 12),
                 _buildSettingButton(
-                  icon: Icons.description_outlined,
-                  title: 'Terms & Conditions',
-                  subtitle: 'Read our terms of service',
+                  icon: AppIcons.book,
+                  title: AppLocalizations.of(context)!.get('terms_conditions'),
+                  subtitle: AppLocalizations.of(context)!.get('terms_desc'),
                   onTap: () {},
                 ),
               ],
@@ -135,7 +195,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Account',
+                  AppLocalizations.of(context)!.get('account'),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -144,9 +204,9 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildSettingButton(
-                  icon: Icons.logout_rounded,
-                  title: 'Logout',
-                  subtitle: 'Sign out of your account',
+                  icon: AppIcons.logout,
+                  title: AppLocalizations.of(context)!.get('logout'),
+                  subtitle: AppLocalizations.of(context)!.get('logout_desc'),
                   isDestructive: true,
                   onTap: () {
                     _showLogoutDialog();
@@ -162,6 +222,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
   }
 
   Widget _buildSettingTile({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required bool value,
@@ -304,25 +365,112 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
     );
   }
 
+  Widget _buildLanguageOptionTile({
+    required String languageName,
+    required String languageCode,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.deepAquiferBlue.withOpacity(0.08)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.deepAquiferBlue : Colors.transparent,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.deepAquiferBlue.withOpacity(0.15)
+                    : AppColors.deepAquiferBlue.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                AppIcons.language,
+                color: AppColors.deepAquiferBlue,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                languageName,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? AppColors.deepAquiferBlue
+                      : AppColors.darkGrey,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                AppIcons.checkmark,
+                color: AppColors.deepAquiferBlue,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showLogoutDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(AppLocalizations.of(context)!.get('logout_confirm_title')),
+        content: Text(
+          AppLocalizations.of(context)!.get('logout_confirm_message'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.get('cancel')),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/login');
+            onPressed: () async {
+              Navigator.pop(context); // close dialog
+
+              // Capture navigator before async gap
+              final navigator = Navigator.of(context);
+
+              try {
+                // Sign out from Firebase + Google + clear JWT
+                await AuthService().signOut();
+
+                // Clear onboarding flag so next login goes through fresh flow
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('onboarding_complete');
+
+                // Navigate to login, clearing the entire stack
+                navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+              } catch (e) {
+                // Even if signOut fails, force navigate to login
+                navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+              }
             },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: AppColors.criticalRed),
+            child: Text(
+              AppLocalizations.of(context)!.get('logout_confirm'),
+              style: const TextStyle(color: AppColors.criticalRed),
             ),
           ),
         ],

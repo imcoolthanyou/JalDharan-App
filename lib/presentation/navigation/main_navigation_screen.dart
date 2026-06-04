@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
 import '../screens/gamification/water_hero_screen.dart';
 import '../screens/community_settings/community_settings_screen.dart';
 import '../screens/map_grind/map_grind_screen.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../core/utils/app_icons.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
@@ -27,7 +30,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -40,31 +46,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         selectedItemColor: AppColors.deepAquiferBlue,
         unselectedItemColor: AppColors.mediumGrey,
         elevation: 12,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            activeIcon: Icon(Icons.home_rounded),
-            label: 'Home',
+            icon: Icon(AppIcons.home),
+            activeIcon: Icon(AppIcons.home),
+            label: AppLocalizations.of(context)!.get('home'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.trending_up_rounded),
-            activeIcon: Icon(Icons.trending_up_rounded),
-            label: 'Prediction',
+            icon: Icon(AppIcons.trend),
+            activeIcon: Icon(AppIcons.trend),
+            label: AppLocalizations.of(context)!.get('prediction'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.public_rounded),
-            activeIcon: Icon(Icons.public_rounded),
-            label: 'Map',
+            icon: Icon(AppIcons.mapGrid),
+            activeIcon: Icon(AppIcons.mapGrid),
+            label: AppLocalizations.of(context)!.get('map_grid'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_rounded),
-            activeIcon: Icon(Icons.emoji_events_rounded),
-            label: 'Gamification',
+            icon: Icon(AppIcons.leaderboard),
+            activeIcon: Icon(AppIcons.leaderboard),
+            label: AppLocalizations.of(context)!.get('gamification'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded),
-            activeIcon: Icon(Icons.settings_rounded),
-            label: 'Settings',
+            icon: Icon(AppIcons.settings),
+            activeIcon: Icon(AppIcons.settings),
+            label: AppLocalizations.of(context)!.get('app_settings'),
           ),
         ],
       ),

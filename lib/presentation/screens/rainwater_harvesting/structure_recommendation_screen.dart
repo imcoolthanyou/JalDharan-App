@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/models/structure_prediction.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/rainwater_prediction_service.dart';
@@ -142,7 +143,7 @@ class _StructureRecommendationScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text('Recommendation'),
+        title: Text(AppLocalizations.of(context)!.get('recommendation')),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -167,15 +168,15 @@ class _StructureRecommendationScreenState
   }
 
   Widget _buildLoadingState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: AppColors.deepAquiferBlue),
-          SizedBox(height: 16),
+          const CircularProgressIndicator(color: AppColors.deepAquiferBlue),
+          const SizedBox(height: 16),
           Text(
-            'Analyzing geospatial data...',
-            style: TextStyle(color: AppColors.mediumGrey),
+            AppLocalizations.of(context)!.get('analyzing_data'),
+            style: const TextStyle(color: AppColors.mediumGrey),
           ),
         ],
       ),
@@ -195,9 +196,9 @@ class _StructureRecommendationScreenState
               color: AppColors.warningOrange,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Analysis Failed',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.get('analysis_failed'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -214,7 +215,7 @@ class _StructureRecommendationScreenState
                 });
                 _fetchPrediction();
               },
-              child: const Text('Try Again'),
+              child: Text(AppLocalizations.of(context)!.get('try_again')),
             ),
           ],
         ),
@@ -244,7 +245,9 @@ class _StructureRecommendationScreenState
               onPressed: _speakRecommendation,
               icon: Icon(_isSpeaking ? Icons.stop : Icons.volume_up),
               label: Text(
-                _isSpeaking ? 'Stop Explanation' : 'Listen to Explanation',
+                _isSpeaking
+                    ? AppLocalizations.of(context)!.get('stop_explanation')
+                    : AppLocalizations.of(context)!.get('listen_explanation'),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isSpeaking
@@ -261,17 +264,21 @@ class _StructureRecommendationScreenState
           const SizedBox(height: 24),
 
           // 3. Water Savings Stats
-          _buildSectionTitle('Water Savings Analysis'),
+          _buildSectionTitle(
+            AppLocalizations.of(context)!.get('water_savings_analysis'),
+          ),
           _buildSavingsCard(waterSavings),
           const SizedBox(height: 24),
 
           // 4. Rainfall & Location Analysis
-          _buildSectionTitle('Site Analysis'),
+          _buildSectionTitle(
+            AppLocalizations.of(context)!.get('site_analysis'),
+          ),
           _buildEnvironmentCard(rainfall, location),
           const SizedBox(height: 24),
 
           // 5. AR Structure Viewer
-          _buildSectionTitle('Visualize'),
+          _buildSectionTitle(AppLocalizations.of(context)!.get('visualize')),
           _buildARCard(),
           const SizedBox(height: 32),
         ],

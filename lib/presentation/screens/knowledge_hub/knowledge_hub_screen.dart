@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; // Add url_launcher
 import '../../../core/models/community_data.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class KnowledgeHubScreen extends StatefulWidget {
   const KnowledgeHubScreen({Key? key}) : super(key: key);
@@ -13,30 +14,27 @@ class KnowledgeHubScreen extends StatefulWidget {
 
 class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   late List<KnowledgeArticle> _articles;
-  String _selectedCategory = 'All';
-  final List<String> _categories = [
-    'All',
-    'Water Management',
-    'Harvesting',
-    'Quality',
-    'Irrigation',
-    'Soil',
-    'Planning',
-  ];
+  String _selectedCategory = 'cat_all';
+  late List<String> _categoryKeys;
 
   @override
   void initState() {
     super.initState();
     _articles = KnowledgeArticle.mockArticles();
+    _categoryKeys = [
+      'cat_all',
+      'cat_water_management',
+      'cat_harvesting',
+      'cat_quality',
+      'cat_irrigation',
+      'cat_soil',
+      'cat_planning',
+    ];
   }
 
   List<KnowledgeArticle> _getFilteredArticles() {
-    if (_selectedCategory == 'All') {
-      return _articles;
-    }
-    return _articles
-        .where((article) => article.category == _selectedCategory)
-        .toList();
+    if (_selectedCategory == 'cat_all') return _articles;
+    return _articles.where((a) => a.categoryKey == _selectedCategory).toList();
   }
 
   @override
@@ -48,9 +46,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Knowledge Hub',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.get('knowledge_hub'),
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: AppColors.darkGrey,
@@ -69,7 +67,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Learn & Grow',
+                    AppLocalizations.of(context)!.get('learn_grow'),
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
@@ -78,7 +76,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Explore expert guides on water management, farming, and conservation.',
+                    AppLocalizations.of(context)!.get('learn_water_management'),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -95,17 +93,15 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
-                children: _categories.map((category) {
-                  final isSelected = _selectedCategory == category;
+                children: _categoryKeys.map((key) {
+                  final isSelected = _selectedCategory == key;
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: FilterChip(
-                      label: Text(category),
+                      label: Text(AppLocalizations.of(context)!.get(key)),
                       selected: isSelected,
                       onSelected: (selected) {
-                        setState(() {
-                          _selectedCategory = category;
-                        });
+                        setState(() => _selectedCategory = key);
                       },
                       backgroundColor: Colors.white,
                       selectedColor: AppColors.deepAquiferBlue,
@@ -143,7 +139,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No articles found',
+                              AppLocalizations.of(
+                                context,
+                              )!.get('no_articles_found'),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -246,7 +244,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                               id: article.id,
                               title: article.title,
                               description: article.description,
+                              titleKey: article.titleKey,
+                              descKey: article.descKey,
                               category: article.category,
+                              categoryKey: article.categoryKey,
                               imageUrl: article.imageUrl,
                               readTime: article.readTime,
                               isFavorite: !article.isFavorite,
@@ -299,7 +300,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            article.category,
+                            AppLocalizations.of(
+                              context,
+                            )!.get(article.categoryKey),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -309,7 +312,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${article.readTime} min read',
+                          '${article.readTime} ${AppLocalizations.of(context)!.get('min_read')}',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
@@ -320,7 +323,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      article.title,
+                      AppLocalizations.of(context)!.get(article.titleKey),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -331,7 +334,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      article.description,
+                      AppLocalizations.of(context)!.get(article.descKey),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,

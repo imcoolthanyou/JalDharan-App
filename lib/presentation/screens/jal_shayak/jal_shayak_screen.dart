@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/services/rag_service.dart';
 
 class ChatMessage {
@@ -32,9 +34,50 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
+  bool _isSpeaking = false;
+
+  // Flutter TTS
+  final FlutterTts _flutterTts = FlutterTts();
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage('en-US');
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) setState(() => _isSpeaking = false);
+    });
+
+    _flutterTts.setCancelHandler(() {
+      if (mounted) setState(() => _isSpeaking = false);
+    });
+  }
+
+  Future<void> _speak(String text) async {
+    if (_isSpeaking) {
+      await _flutterTts.stop();
+      setState(() => _isSpeaking = false);
+      return;
+    }
+    setState(() => _isSpeaking = true);
+    await _flutterTts.speak(text);
+  }
+
+  Future<void> _stopSpeaking() async {
+    await _flutterTts.stop();
+    if (mounted) setState(() => _isSpeaking = false);
+  }
 
   @override
   void dispose() {
+    _flutterTts.stop();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -56,8 +99,6 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
 
     _messageController.clear();
     _scrollToBottom();
-
-    // Call RAG API
     _fetchAIResponse(userMessage.text);
   }
 
@@ -77,17 +118,18 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
           _isLoading = false;
         });
         _scrollToBottom();
+
+        // Auto-speak AI response
+        await _speak(response.reply);
       }
     } catch (e) {
       if (mounted) {
-        final errorResponse = ChatMessage(
-          text: '⚠️ Error: ${e.toString()}\n\nTroubleshooting:\n• Check internet connection\n• Ensure backend server is running\n• Try rephrasing your question',
-          isUser: false,
-          timestamp: DateTime.now(),
-        );
-
         setState(() {
-          _messages.add(errorResponse);
+          _messages.add(ChatMessage(
+            text: '⚠️ Error: ${e.toString()}\n\nTroubleshooting:\n• Check internet connection\n• Ensure backend server is running\n• Try rephrasing your question',
+            isUser: false,
+            timestamp: DateTime.now(),
+          ));
           _isLoading = false;
         });
         _scrollToBottom();
@@ -115,7 +157,6 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,7 +168,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.deepAquiferBlue,
                 shape: BoxShape.circle,
               ),
@@ -138,9 +179,9 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
-              'Jal Shayak',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.get('jal_shayak'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppColors.darkGrey,
@@ -148,6 +189,17 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
             ),
           ],
         ),
+        actions: [
+          // Global stop speaking button
+          if (_isSpeaking)
+            IconButton(
+              onPressed: _stopSpeaking,
+              icon: const Icon(
+                Icons.stop_circle_rounded,
+                color: AppColors.deepAquiferBlue,
+              ),
+            ),
+        ],
         centerTitle: false,
       ),
       body: Column(
@@ -189,10 +241,8 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                       controller: _messageController,
                       enabled: !_isLoading,
                       decoration: InputDecoration(
-                        hintText: 'Ask about water conservation...',
-                        hintStyle: TextStyle(
-                          color: AppColors.mediumGrey,
-                        ),
+                        hintText: AppLocalizations.of(context)!.get('ask_question'),
+                        hintStyle: const TextStyle(color: AppColors.mediumGrey),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
@@ -222,7 +272,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                       onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: _isLoading ? null : _sendMessage,
                     child: Container(
@@ -233,7 +283,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                             : AppColors.deepAquiferBlue,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.send_rounded,
                         color: Colors.white,
                         size: 20,
@@ -253,17 +303,14 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Align(
-        alignment:
-            message.isUser ? Alignment.centerRight : Alignment.centerLeft,
+        alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.75,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: message.isUser
-                ? AppColors.deepAquiferBlue
-                : Colors.white,
+            color: message.isUser ? AppColors.deepAquiferBlue : Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -273,14 +320,47 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
               ),
             ],
           ),
-          child: Text(
-            message.text,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: message.isUser ? Colors.white : AppColors.darkGrey,
-              height: 1.4,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message.text,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: message.isUser ? Colors.white : AppColors.darkGrey,
+                  height: 1.4,
+                ),
+              ),
+              // Speaker button only on AI messages
+              if (!message.isUser) ...[
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => _speak(message.text),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isSpeaking
+                            ? Icons.stop_circle_outlined
+                            : Icons.volume_up_rounded,
+                        size: 16,
+                        color: AppColors.deepAquiferBlue,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isSpeaking ? 'Stop' : 'Listen',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.deepAquiferBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -305,7 +385,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
               ),
             ],
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
@@ -313,12 +393,12 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
+                  valueColor: AlwaysStoppedAnimation<Color>(
                     AppColors.deepAquiferBlue,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Text(
                 'Jal Shayak is thinking...',
                 style: TextStyle(

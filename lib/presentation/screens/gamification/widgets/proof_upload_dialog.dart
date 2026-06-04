@@ -3,10 +3,10 @@ import 'package:image_picker/image_picker.dart';
 
 import 'dart:io';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/models/gamification_data.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/ai_verification_service.dart';
-
 
 class ProofUploadDialog extends StatefulWidget {
   final DailyTask task;
@@ -41,9 +41,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
@@ -60,9 +60,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
@@ -143,9 +143,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Upload Proof',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.get('upload_proof'),
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: AppColors.darkGrey,
@@ -153,7 +153,7 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Provide photo/video evidence for "${widget.task.title}"',
+                    '${AppLocalizations.of(context)!.get('upload_proof_desc')} "${AppLocalizations.of(context)!.get(widget.task.titleKey)}"',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -194,7 +194,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'No image selected',
+                            AppLocalizations.of(
+                              context,
+                            )!.get('no_image_selected'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -205,6 +207,42 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                       ),
                     ),
                   const SizedBox(height: 20),
+                  // Fraud warning note
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.criticalRed.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.criticalRed.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.gpp_bad_rounded,
+                          color: AppColors.criticalRed,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.get('false_image_warning'),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.criticalRed,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   // Camera and Gallery buttons
                   Row(
                     children: [
@@ -212,7 +250,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                         child: ElevatedButton.icon(
                           onPressed: _isLoading ? null : _pickImageFromCamera,
                           icon: const Icon(Icons.camera_alt_rounded),
-                          label: const Text('Camera'),
+                          label: Text(
+                            AppLocalizations.of(context)!.get('camera'),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: AppColors.deepAquiferBlue,
@@ -231,7 +271,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                         child: ElevatedButton.icon(
                           onPressed: _isLoading ? null : _pickImageFromGallery,
                           icon: const Icon(Icons.image_rounded),
-                          label: const Text('Gallery'),
+                          label: Text(
+                            AppLocalizations.of(context)!.get('gallery'),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: AppColors.deepAquiferBlue,
@@ -272,9 +314,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text(
-                              'Submit Proof',
-                              style: TextStyle(
+                          : Text(
+                              AppLocalizations.of(context)!.get('submit_proof'),
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -417,9 +459,9 @@ class VerificationResultDialog extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'AI Analysis',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.get('ai_analysis'),
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: AppColors.darkGrey,
@@ -430,7 +472,7 @@ class VerificationResultDialog extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Real Image',
+                            AppLocalizations.of(context)!.get('real_image'),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -449,7 +491,9 @@ class VerificationResultDialog extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              result.isRealImage ? 'Yes' : 'No',
+                              result.isRealImage
+                                  ? AppLocalizations.of(context)!.get('yes')
+                                  : AppLocalizations.of(context)!.get('no'),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -466,7 +510,7 @@ class VerificationResultDialog extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Task Completed',
+                            AppLocalizations.of(context)!.get('task_completed'),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -485,7 +529,9 @@ class VerificationResultDialog extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              result.taskCompleted ? 'Yes' : 'No',
+                              result.taskCompleted
+                                  ? AppLocalizations.of(context)!.get('yes')
+                                  : AppLocalizations.of(context)!.get('no'),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -502,7 +548,7 @@ class VerificationResultDialog extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Confidence',
+                            AppLocalizations.of(context)!.get('confidence'),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -523,7 +569,7 @@ class VerificationResultDialog extends StatelessWidget {
                       const Divider(),
                       const SizedBox(height: 12),
                       Text(
-                        'Details',
+                        AppLocalizations.of(context)!.get('details'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -566,7 +612,9 @@ class VerificationResultDialog extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '+${task.points} Water Hero Points Added!',
+                            AppLocalizations.of(context)!
+                                .get('points_added')
+                                .replaceAll('{points}', '${task.points}'),
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -595,10 +643,10 @@ class VerificationResultDialog extends StatelessWidget {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Please try again with a valid photo.',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.get('try_again_msg'),
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: AppColors.criticalRed,
@@ -624,7 +672,9 @@ class VerificationResultDialog extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      result.isValid ? 'OK' : 'Try Again',
+                      result.isValid
+                          ? AppLocalizations.of(context)!.get('close')
+                          : AppLocalizations.of(context)!.get('try_again'),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,

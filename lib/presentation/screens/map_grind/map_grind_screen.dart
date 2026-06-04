@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/models/community_data.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class MapGrindScreen extends StatefulWidget {
   const MapGrindScreen({Key? key}) : super(key: key);
@@ -33,10 +34,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  AppColors.deepAquiferBlue,
-                  AppColors.tealStart,
-                ],
+                colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -53,18 +51,20 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
-                              'Community Map',
-                              style: TextStyle(
+                              AppLocalizations.of(context)!.get('community'),
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
                               ),
                             ),
                             Text(
-                              'View water levels across the community',
-                              style: TextStyle(
+                              AppLocalizations.of(
+                                context,
+                              )!.get('community_map_desc'),
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.white70,
                               ),
@@ -93,7 +93,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                   children: [
                     TileLayer(
                       urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       // ✅ FIX: Added User Agent to satisfy OSM Policy
                       userAgentPackageName: 'com.jal_dharan.app',
                       maxNativeZoom: 19,
@@ -102,53 +102,53 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                       markers: _members
                           .map(
                             (member) => Marker(
-                          point: LatLng(member.latitude, member.longitude),
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedMember = member;
-                              });
-                              // Animate to marker
-                              _mapController.move(
-                                LatLng(member.latitude, member.longitude),
-                                9.5,
-                              );
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _selectedMember?.name == member.name
-                                    ? AppColors.deepAquiferBlue
-                                    : AppColors.tealStart,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
+                              point: LatLng(member.latitude, member.longitude),
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedMember = member;
+                                  });
+                                  // Animate to marker
+                                  _mapController.move(
+                                    LatLng(member.latitude, member.longitude),
+                                    9.5,
+                                  );
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _selectedMember?.name == member.name
+                                        ? AppColors.deepAquiferBlue
+                                        : AppColors.tealStart,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              width: 50,
-                              height: 50,
-                              child: Center(
-                                child: Text(
-                                  member.initials,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 12,
+                                  width: 50,
+                                  height: 50,
+                                  child: Center(
+                                    child: Text(
+                                      member.initials,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      )
+                          )
                           .toList(),
                     ),
                   ],
@@ -191,10 +191,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  AppColors.deepAquiferBlue,
-                  AppColors.tealStart,
-                ],
+                colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -258,9 +255,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.4),
-                      ),
+                      border: Border.all(color: Colors.white.withOpacity(0.4)),
                     ),
                     child: const Text(
                       'Admin',
@@ -365,9 +360,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-        ),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

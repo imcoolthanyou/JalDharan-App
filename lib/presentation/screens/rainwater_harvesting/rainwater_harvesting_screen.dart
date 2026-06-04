@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/models/rainwater_harvesting_data.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../widgets/rainwater_harvesting_widgets.dart';
 import 'structure_recommendation_screen.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -105,15 +106,20 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
       );
 
       if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        String city = place.locality ?? place.subAdministrativeArea ?? '';
+        // Try to find the most accurate placemark (prefer one with locality)
+        Placemark place = placemarks.firstWhere(
+          (p) => p.locality != null && p.locality!.isNotEmpty,
+          orElse: () => placemarks.first,
+        );
+        String city =
+            place.locality ?? place.subAdministrativeArea ?? place.name ?? '';
         String state = place.administrativeArea ?? '';
         String address = [
           city,
           state,
         ].where((element) => element.isNotEmpty).join(', ');
 
-        _locationController.text = address;
+        if (mounted) setState(() => _locationController.text = address);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -277,7 +283,7 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: RWHAppBar(
-        title: 'Rainwater Harvesting',
+        title: AppLocalizations.of(context)!.get('rainwater_harvesting'),
         onBackPressed: () => Navigator.pop(context),
       ),
       body: SingleChildScrollView(
@@ -288,8 +294,10 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
             children: [
               // Location Section
               SectionTitle(
-                title: 'Location',
-                subtitle: 'Auto-detect your city and state',
+                title: AppLocalizations.of(context)!.get('location'),
+                subtitle: AppLocalizations.of(
+                  context,
+                )!.get('area_based_on_location'),
               ),
               const SizedBox(height: 12),
               Container(
@@ -305,7 +313,9 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                       focusNode: focusNode,
                       onSubmitted: _searchLocation,
                       decoration: InputDecoration(
-                        hintText: 'Enter city or address',
+                        hintText: AppLocalizations.of(
+                          context,
+                        )!.get('enter_city_address'),
                         hintStyle: const TextStyle(color: AppColors.mediumGrey),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
@@ -361,18 +371,86 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                       ),
                     );
                   },
-                  emptyBuilder: (context) => const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text('No locations found'),
+                  emptyBuilder: (context) => Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      AppLocalizations.of(context)!.get('no_locations_found'),
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              // GPS detect location button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isFetchingLocation ? null : _getCurrentLocation,
+                  icon: _isFetchingLocation
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location_rounded, size: 18),
+                  label: Text(
+                    AppLocalizations.of(context)!.get('detect_location'),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.deepAquiferBlue,
+                    side: const BorderSide(color: AppColors.deepAquiferBlue),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              // Show coordinates when available
+              if (_lat != null && _lon != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.fieldGreen.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.fieldGreen.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_rounded,
+                        size: 14,
+                        color: AppColors.fieldGreen,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '${_locationController.text.isNotEmpty ? _locationController.text : "Location detected"} (${_lat!.toStringAsFixed(4)}, ${_lon!.toStringAsFixed(4)})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.fieldGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 32),
 
               // Roof Area Section (was Catchment Area)
               SectionTitle(
-                title: 'Roof Area',
-                subtitle: 'Enter the roof area available for harvesting',
+                title: AppLocalizations.of(context)!.get('roof_area'),
+                subtitle: AppLocalizations.of(
+                  context,
+                )!.get('rainwater_harvesting_desc'),
               ),
               const SizedBox(height: 12),
               Row(
@@ -398,9 +476,11 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                           );
                         });
                       },
-                      decoration: const InputDecoration(
-                        hintText: 'Enter area',
-                        hintStyle: TextStyle(color: AppColors.mediumGrey),
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(
+                          context,
+                        )!.get('enter_area'),
+                        hintStyle: const TextStyle(color: AppColors.mediumGrey),
                         border: InputBorder.none,
                         suffixText: 'sqft', // changed from m²
                         suffixStyle: TextStyle(fontWeight: FontWeight.w600),
@@ -427,21 +507,20 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
 
               // Number of Dwellers Section
               SectionTitle(
-                title: 'Number of Dwellers',
-                subtitle: 'How many people live in the household?',
+                title: AppLocalizations.of(context)!.get('dwellers'),
+                subtitle: AppLocalizations.of(context)!.get('dwellers_desc'),
               ),
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  // border: Border.all(color: const Color(0xFFE0E0E0)), // Removed boder to match other inputs style
                 ),
                 child: TextField(
                   controller: _dwellersController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter number',
-                    hintStyle: TextStyle(color: AppColors.mediumGrey),
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.get('enter_number'),
+                    hintStyle: const TextStyle(color: AppColors.mediumGrey),
                     border: InputBorder.none,
                   ),
                 ),
@@ -450,8 +529,8 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
 
               // Open Space Section (still in sqm – kept as is)
               SectionTitle(
-                title: 'Available Open Space',
-                subtitle: 'How much space is available for structure?',
+                title: AppLocalizations.of(context)!.get('open_space'),
+                subtitle: AppLocalizations.of(context)!.get('open_space_desc'),
               ),
               const SizedBox(height: 12),
               Container(
@@ -466,7 +545,9 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: 'Enter area (e.g., 4.0)',
+                    hintText: AppLocalizations.of(
+                      context,
+                    )!.get('enter_area_eg'),
                     hintStyle: TextStyle(color: AppColors.mediumGrey),
                     border: InputBorder.none,
                     suffixText: 'sq.ft',
@@ -482,7 +563,7 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
 
               // Recommend Button
               PrimaryButton(
-                label: 'Recommend Structure',
+                label: AppLocalizations.of(context)!.get('recommend_structure'),
                 icon: Icons.water_drop,
                 onPressed: () async {
                   // 1. Auto-fetch location if missing

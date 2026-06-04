@@ -119,6 +119,84 @@ class GroundwaterData {
     }
   }
 
+  /// Parse the new /dashboard response shape:
+  /// { device_mac, device_name, is_online, last_seen, data: { sensor: {...}, predictions: {...} } }
+  factory GroundwaterData.fromDeviceJson(Map<String, dynamic> device) {
+    final data = device['data'] as Map<String, dynamic>? ?? {};
+    final sensor = data['sensor'] as Map<String, dynamic>? ?? {};
+    final predictions = data['predictions'] as Map<String, dynamic>? ?? {};
+    final quality = predictions['water_quality'] as Map<String, dynamic>? ?? {};
+    final motor = predictions['motor_load'] as Map<String, dynamic>? ?? {};
+    final trend =
+        predictions['groundwater_trend'] as Map<String, dynamic>? ?? {};
+    final weather = predictions['weather_data'] as Map<String, dynamic>? ?? {};
+
+    // Debug: Log predictions and trend maps
+    // ignore: avoid_print
+    debugPrint('Predictions map: ' + predictions.toString());
+    // ignore: avoid_print
+    debugPrint('Groundwater trend map: ' + trend.toString());
+
+    // sensor.distance is the distance from sensor to water surface in cm
+    final sensorDistanceCm =
+        (sensor['distance'] ?? sensor['sensor_distance_cm'] ?? 0.0).toDouble();
+    // Derive water depth from sensor distance (assuming 50m total borewell depth)
+    final totalDepth = 50.0;
+    final currentDepth = (sensor['water_depth_m'] ?? (sensorDistanceCm / 100))
+        .toDouble();
+
+    return GroundwaterData(
+      currentDepth: currentDepth,
+      totalDepth: totalDepth,
+      flowRate: (sensor['flow_rate'] ?? sensor['flow_rate_L_min'] ?? 0.0)
+          .toDouble(),
+      remainingPercentage:
+          '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
+      qualityScore: (quality['score'] ?? 80.0).toDouble(),
+      qualityStatus: quality['quality_class'] ?? quality['status'] ?? 'Good',
+      currentSession: (sensor['current_session_m3'] ?? 0.0).toDouble(),
+      estimatedExtraction: (sensor['extracted_amount_m3'] ?? 0.0).toDouble(),
+      tdsLevel: (sensor['tds'] ?? sensor['tds_value'] ?? 0.0).toDouble(),
+      tdsStatus: 'Safe',
+      phLevel: (sensor['ph'] ?? 7.0).toDouble(),
+      phStatus: 'Balanced',
+      voltage: (sensor['voltage'] ?? 0.0).toDouble(),
+      current: (sensor['current'] ?? sensor['pump_current_amps'] ?? 0.0)
+          .toDouble(),
+      motorStatus:
+          motor['motor_status'] ??
+          (device['is_online'] == true ? 'Normal' : 'Off'),
+      soilMoisture: (sensor['soil_moisture'] ?? 0.0).toDouble(),
+      soilMoistureStatus: 'Loading...',
+      extractionRate: (sensor['flow_rate'] ?? sensor['flow_rate_L_min'] ?? 0.0)
+          .toDouble(),
+      extractionStatus: 'Active',
+      lastUpdated:
+          device['last_seen'] ??
+          sensor['timestamp'] ??
+          DateTime.now().toString(),
+      sensorDistanceCm: sensorDistanceCm,
+      flowRateThisSession: (sensor['flow_rate'] ?? 0.0).toDouble(),
+      totalExtractionPerSession: (sensor['total_extraction_per_session'] ?? 0.0)
+          .toDouble(),
+      totalLifetimeExtractionL: (sensor['total_lifetime_extraction_L'] ?? 0.0)
+          .toDouble(),
+      predictedDepth7Days: (trend['predicted_depth_7days'] ?? 0.0).toDouble(),
+      predictedDepth14Days: (trend['predicted_depth_14days'] ?? 0.0).toDouble(),
+      predictedDepth30Days: (trend['predicted_depth_30days'] ?? 0.0).toDouble(),
+      trend30Days: trend['trend_30days'] ?? 'stable',
+      waterStressLevel: trend['water_stress_level'] ?? 'low',
+      weatherTemp: (weather['temp'] ?? 0.0).toDouble(),
+      weatherCondition: weather['condition'] ?? 'Clear',
+      weatherDescription: weather['description'] ?? 'clear',
+      weatherIcon: weather['icon'] ?? '01d',
+      rainAlert: weather['rain_alert'] ?? '',
+      waterHealthAI: predictions['water_health_ai'] != null
+          ? WaterHealthAI.fromJson(predictions['water_health_ai'])
+          : null,
+    );
+  }
+
   // Factory constructor from JSON (for API integration)
   factory GroundwaterData.fromJson(Map<String, dynamic> json) {
     final sensor = json['sensor_data'] ?? {};
@@ -275,12 +353,13 @@ class GroundwaterData {
       flowRateThisSession:
           (sensorData['flow_rate_L_min'] ?? this.flowRateThisSession)
               .toDouble(),
-      totalExtractionPerSession: this
-          .totalExtractionPerSession, 
-          // Note: totalExtractionPerSession is complex to calculate on socket, relying on polling for now.
+      totalExtractionPerSession: this.totalExtractionPerSession,
+      // Note: totalExtractionPerSession is complex to calculate on socket, relying on polling for now.
       totalLifetimeExtractionL:
-          (sensorData['total_lifetime_extraction_L'] ?? this.totalLifetimeExtractionL).toDouble(), 
-          // Updated from socket payload if available
+          (sensorData['total_lifetime_extraction_L'] ??
+                  this.totalLifetimeExtractionL)
+              .toDouble(),
+      // Updated from socket payload if available
       predictedDepth7Days: this.predictedDepth7Days,
       predictedDepth14Days: this.predictedDepth14Days,
       predictedDepth30Days: this.predictedDepth30Days,

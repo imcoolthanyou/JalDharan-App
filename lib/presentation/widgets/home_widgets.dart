@@ -1,6 +1,6 @@
-// Updated HeaderWithWave - more modern and integrated with app bar
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/groundwater_data.dart';
 
@@ -316,7 +316,7 @@ class QualityScoreCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Water Quality',
+                    AppLocalizations.of(context)!.get('water_quality'),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -433,9 +433,9 @@ class WaterHealthAICard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Water Health AI',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.get('water_health_ai'),
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -520,9 +520,9 @@ class WaterHealthAICard extends StatelessWidget {
 
                 // Health Risk Tags
                 if (data.healthRiskTags.isNotEmpty) ...[
-                  const Text(
-                    'Health Risks',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.get('health_risks'),
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: AppColors.darkGrey,
@@ -561,9 +561,9 @@ class WaterHealthAICard extends StatelessWidget {
 
                 // Sensor Insights
                 if (data.sensorInsights.isNotEmpty) ...[
-                  const Text(
-                    'Sensor Insights',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.get('sensor_insights'),
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: AppColors.darkGrey,

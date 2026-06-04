@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -7,14 +8,19 @@ import '../../../core/models/groundwater_data.dart';
 import '../../../core/services/dashboard_api_service.dart';
 import '../../../core/services/pdf_report_service.dart';
 import '../../../core/services/socket_service.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/utils/app_icons.dart';
 import '../../widgets/home_widgets.dart';
 import '../../widgets/animated_gradient_background.dart';
+import '../../widgets/jal_shayak_overlay.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/services/water_alert_service.dart';
 
 import '../rainwater_harvesting/rainwater_harvesting_screen.dart';
 import 'homedigitaltwin_clean.dart';
+import '../auth/onboarding_screen.dart';
 import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
@@ -30,19 +36,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = false;
   bool _isPumpOn = false;
   bool _isLoadingPump = false;
+  bool _noDevice =
+      false; // only true on first load with no device — never flips back
+  bool _everHadDevice = false; // once true, never show "no device" again
+  String? _cachedToken; // cached once in initState, reused for all polls
   late Timer _autoRefreshTimer;
-  Timer? _zeroFlowTimer; // Auto-shutoff when pump ON but flow = 0 for 10s
+  Timer? _zeroFlowTimer;
   static const Duration _refreshInterval = Duration(seconds: 10);
 
   @override
   void initState() {
     super.initState();
     _currentData = GroundwaterData.mockCurrentData();
-    // Initialize pump state to OFF by default (natural state when not connected)
     _isPumpOn = false;
 
-    // Initialize notifications
     WaterAlertService.initialize();
+
+    // Cache JWT once — reuse for all polls to avoid null on rebuild
+    AuthService().getToken().then((token) {
+      _cachedToken = token;
+      // First fetch after token is ready
+      _fetchDashboardData();
+    });
 
     // Initialize Socket.IO
     Future.microtask(() {
@@ -50,14 +65,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (!socketService.isConnected && !socketService.isConnecting) {
         socketService.initSocket();
       }
-      // Add listener for sensor updates
       socketService.addSensorUpdateListener(_onSensorDataReceived);
-      // Add listener for connection status to manage pump state
       socketService.addConnectionStatusListener(_onConnectionStatusChanged);
     });
 
-    // Also keep HTTP polling as fallback
     _startAutoRefresh();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Do NOT call _fetchDashboardData here — it fires on every rebuild
+    // and causes the "no device" flash. Token caching in initState handles first load.
   }
 
   /// Callback when Socket.IO receives new sensor data
@@ -116,45 +135,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _fetchDashboardData();
-  }
-
   Future<void> _fetchDashboardData() async {
     if (!mounted) return;
+
+    // Refresh token if not cached yet
+    _cachedToken ??= await AuthService().getToken();
 
     try {
       final data = await _apiService.fetchDashboardData();
 
       if (!mounted) return;
 
+      // Once we've seen a device, never go back to "no device" state
+      _everHadDevice = true;
+
       if (_hasDataChanged(data)) {
         setState(() {
           _currentData = data;
           _isLoading = false;
+          _noDevice = false;
         });
-
-        // Trigger notifications for water quality alerts
-        developer.log('📢 Checking water quality from API data: pH=${data.phLevel}, TDS=${data.tdsLevel}');
-        WaterAlertService.checkAndNotify(
-          ph: data.phLevel,
-          tds: data.tdsLevel,
-        );
+        developer.log('📢 pH=${data.phLevel}, TDS=${data.tdsLevel}');
+        WaterAlertService.checkAndNotify(ph: data.phLevel, tds: data.tdsLevel);
       } else {
         setState(() {
           _isLoading = false;
+          _noDevice = false;
         });
       }
+    } on NoDeviceException {
+      if (!mounted) return;
+      // Only show "no device" if we've NEVER seen a device in this session
+      if (!_everHadDevice) {
+        setState(() {
+          _isLoading = false;
+          _noDevice = true;
+        });
+      }
+      developer.log('ℹ️ No device in response (everHadDevice=$_everHadDevice)');
     } catch (e) {
       if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Only log errors, don't show them in UI
+      // Network/auth error — keep last known state, do NOT set _noDevice
+      setState(() => _isLoading = false);
       developer.log('Dashboard API Error: $e');
     }
   }
@@ -208,21 +230,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/control/pump'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"action": value ? "ON" : "OFF"}),
-      );
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.pumpControlEndpoint),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({"action": value ? "ON" : "OFF"}),
+          )
+          .timeout(
+            ApiConfig.requestTimeout,
+            onTimeout: () {
+              throw TimeoutException(
+                'Pump control request timed out',
+                ApiConfig.requestTimeout,
+              );
+            },
+          );
 
       if (response.statusCode == 200) {
         setState(() {
           _isPumpOn = value;
           _isLoadingPump = false;
         });
+        developer.log('✅ Pump toggled successfully: ${value ? "ON" : "OFF"}');
       } else {
         setState(() {
           _isLoadingPump = false;
         });
+        developer.log('❌ Pump toggle failed: ${response.statusCode}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed: ${response.statusCode}")),
         );
@@ -232,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _isLoadingPump = false;
         _isPumpOn = false; // Reset to OFF state on communication error
       });
-      developer.log("Error toggling pump: $e");
+      developer.log("❌ Error toggling pump: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -249,12 +283,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _zeroFlowTimer?.cancel();
     _zeroFlowTimer = null;
 
-    // Remove socket listeners
-    Future.microtask(() {
-      final socketService = Provider.of<SocketService>(context, listen: false);
-      socketService.removeSensorUpdateListener(_onSensorDataReceived);
-      socketService.removeConnectionStatusListener(_onConnectionStatusChanged);
-    });
+    // Access context before super.dispose() deactivates it
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    socketService.removeSensorUpdateListener(_onSensorDataReceived);
+    socketService.removeConnectionStatusListener(_onConnectionStatusChanged);
 
     super.dispose();
   }
@@ -311,464 +343,704 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            // Digital Twin Section - 85% of screen height
-            SizedBox(
-              height: screenHeight * 0.85,
-              child: HomeDigitalTwin(initialData: _currentData),
-            ),
-
-            // Swipe Up Indicator - 15% of screen height
-            Container(
-              height: screenHeight * 0.15,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF0F172A).withOpacity(0.0),
-                    const Color(0xFF0F172A).withOpacity(0.95),
-                  ],
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Swipe up to see all information',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.9),
-                        letterSpacing: 0.3,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: _noDevice
+              ? _buildNoDeviceScreen()
+              : SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Digital Twin Section - 85% of screen height
+                      SizedBox(
+                        height: screenHeight * 0.85,
+                        child: HomeDigitalTwin(initialData: _currentData),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Icon(
-                      Icons.keyboard_arrow_up_rounded,
-                      color: Colors.white.withOpacity(0.8),
-                      size: 24,
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
-            // Main Home Screen Content
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with Animated Gradient
-                AnimatedGradientBackground(
-                  colors: [
-                    AppColors.deepAquiferBlue,
-                    AppColors.tealStart,
-                    AppColors.tealEnd,
-                    AppColors.deepAquiferBlue,
-                  ],
-                  duration: const Duration(seconds: 8),
-                  showDebugIndicator: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.water_drop_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
+                      // Swipe Up Indicator - 15% of screen height
+                      Container(
+                        height: screenHeight * 0.15,
+                        color: const Color(0xFF0F172A),
+                        child: Center(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Water Quality & Parameters',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
+                              Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.get('swipe_up_to_view'),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                   color: Colors.white,
-                                  letterSpacing: -0.5,
+                                  letterSpacing: 0.3,
                                 ),
                               ),
-                              Text(
-                                'Real-time sensor data',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white.withOpacity(0.9),
-                                ),
+                              const SizedBox(height: 8),
+                              Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white,
+                                size: 24,
                               ),
                             ],
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(context, '/notifications');
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
 
-                // Last Updated Chip
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.lightGrey),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      // Main Home Screen Content
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 16,
-                            color: AppColors.deepAquiferBlue,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _currentData.formattedTime,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.deepAquiferBlue,
+                          // Header with Animated Gradient
+                          AnimatedGradientBackground(
+                            colors: [
+                              AppColors.deepAquiferBlue,
+                              AppColors.tealStart,
+                              AppColors.tealEnd,
+                              AppColors.deepAquiferBlue,
+                            ],
+                            duration: const Duration(seconds: 8),
+                            showDebugIndicator: false,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      AppIcons.waterDrop,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.get('water_quality'),
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                            letterSpacing: -0.5,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Real-time sensor data',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white.withOpacity(
+                                              0.9,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/notifications',
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        AppIcons.notification,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
 
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Quality Score Card
-                      QualityScoreCard(
-                        qualityScore: _currentData.qualityScore,
-                        qualityStatus: _currentData.qualityStatus,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Parameter Cards Grid
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.0,
-                        children: [
-                          _buildParameterCard(
-                            icon: Icons.water_drop_rounded,
-                            label: 'Water Depth',
-                            value: _currentData.currentDepth.toStringAsFixed(1),
-                            unit: 'm',
-                            color: AppColors.deepAquiferBlue,
-                          ),
-                          _buildParameterCard(
-                            icon: Icons.waves,
-                            label: 'Flow Rate',
-                            value: _currentData.flowRate.toStringAsFixed(1),
-                            unit: 'L/min',
-                            color: AppColors.tealStart,
-                          ),
-                          _buildParameterCard(
-                            icon: Icons.science_rounded,
-                            label: 'TDS Level',
-                            value: _currentData.tdsLevel.toStringAsFixed(0),
-                            unit: 'ppm',
-                            color: AppColors.warningOrange,
-                          ),
-                          _buildParameterCard(
-                            icon: Icons.sensor_window_rounded,
-                            label: 'pH Level',
-                            value: _currentData.phLevel.toStringAsFixed(1),
-                            unit: '',
-                            color: AppColors.fieldGreen,
-                          ),
-                          _buildParameterCard(
-                            icon: Icons.flash_on_rounded,
-                            label: 'Voltage',
-                            value: _currentData.voltage.toStringAsFixed(0),
-                            unit: 'V',
-                            color: AppColors.criticalRed,
-                          ),
-                          _buildParameterCard(
-                            icon: Icons.electric_bolt_rounded,
-                            label: 'Current',
-                            value: _currentData.current.toStringAsFixed(1),
-                            unit: 'A',
-                            color: AppColors.earthBrown,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Pump Control Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.lightGrey),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                          // Last Updated Chip
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: AppColors.lightGrey,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      AppIcons.temperature,
+                                      size: 16,
+                                      color: AppColors.deepAquiferBlue,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _currentData.formattedTime,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.deepAquiferBlue,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Pump Control',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.mediumGrey,
-                                  ),
+                                // Quality Score Card
+                                QualityScoreCard(
+                                  qualityScore: _currentData.qualityScore,
+                                  qualityStatus: _currentData.qualityStatus,
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _isPumpOn ? 'Active' : 'Inactive',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: _isPumpOn
-                                        ? AppColors.fieldGreen
-                                        : AppColors.mediumGrey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (_isLoadingPump)
-                              const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            else
-                              Switch(
-                                value: _isPumpOn,
-                                onChanged: _togglePump,
-                                activeColor: AppColors.fieldGreen,
-                              ),
-                          ],
-                        ),
-                      ),
+                                const SizedBox(height: 16),
 
-                      const SizedBox(height: 24),
-
-                      // Rainwater Harvesting Section
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const RainwaterHarvestingScreen(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.tealStart.withOpacity(0.2),
-                                AppColors.tealEnd.withOpacity(0.2),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.tealStart.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.tealStart.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.cloud_download_rounded,
-                                  color: AppColors.tealStart,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                // Parameter Cards Grid
+                                GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.0,
                                   children: [
-                                    const Text(
-                                      'Rainwater Harvesting',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.darkGrey,
-                                      ),
+                                    _buildParameterCard(
+                                      icon: AppIcons.waterLevel,
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.get('water_depth'),
+                                      value: _currentData.currentDepth
+                                          .toStringAsFixed(1),
+                                      unit: 'm',
+                                      color: AppColors.deepAquiferBlue,
                                     ),
-                                    Text(
-                                      'Learn about structure & setup',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.mediumGrey,
-                                      ),
+                                    _buildParameterCard(
+                                      icon: AppIcons.flowRate,
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.get('flow_rate'),
+                                      value: _currentData.flowRate
+                                          .toStringAsFixed(1),
+                                      unit: 'L/min',
+                                      color: AppColors.tealStart,
+                                    ),
+                                    _buildParameterCard(
+                                      icon: AppIcons.tds,
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.get('tds_level'),
+                                      value: _currentData.tdsLevel
+                                          .toStringAsFixed(0),
+                                      unit: 'ppm',
+                                      color: AppColors.warningOrange,
+                                    ),
+                                    _buildParameterCard(
+                                      icon: AppIcons.ph,
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.get('ph_level'),
+                                      value: _currentData.phLevel
+                                          .toStringAsFixed(1),
+                                      unit: '',
+                                      color: AppColors.fieldGreen,
                                     ),
                                   ],
                                 ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: AppColors.tealStart,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
 
-                      const SizedBox(height: 16),
+                                const SizedBox(height: 24),
 
-                      // Knowledge Hub Section
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/knowledge_hub');
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.fieldGreen.withOpacity(0.2),
-                                AppColors.deepAquiferBlue.withOpacity(0.2),
+                                // Pump Control Card
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: AppColors.lightGrey,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.get('pump_status'),
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.mediumGrey,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            _isPumpOn
+                                                ? AppLocalizations.of(
+                                                    context,
+                                                  )!.get('pump_on')
+                                                : AppLocalizations.of(
+                                                    context,
+                                                  )!.get('pump_off'),
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: _isPumpOn
+                                                  ? AppColors.fieldGreen
+                                                  : AppColors.mediumGrey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (_isLoadingPump)
+                                        const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      else
+                                        Switch(
+                                          value: _isPumpOn,
+                                          onChanged: _togglePump,
+                                          activeColor: AppColors.fieldGreen,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                // Water Extraction & Flow Rate Card
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: AppColors.lightGrey,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.get('estimated_extraction'),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.mediumGrey,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.get('session'),
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: AppColors.mediumGrey,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${_currentData.currentSession.toStringAsFixed(1)} m³',
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: AppColors
+                                                        .deepAquiferBlue,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.get('flow_rate_info'),
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: AppColors.mediumGrey,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${_currentData.flowRate.toStringAsFixed(1)} L/min',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w800,
+                                                    color:
+                                                        _currentData.flowRate >
+                                                            0
+                                                        ? AppColors.fieldGreen
+                                                        : AppColors
+                                                              .warningOrange,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Rainwater Harvesting Section
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const RainwaterHarvestingScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.tealStart.withOpacity(0.2),
+                                          AppColors.tealEnd.withOpacity(0.2),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AppColors.tealStart.withOpacity(
+                                          0.3,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.tealStart
+                                                .withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.water_drop,
+                                            color: AppColors.tealStart,
+                                            size: 28,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.get('rainwater_harvesting'),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.darkGrey,
+                                                ),
+                                              ),
+                                              Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.get(
+                                                  'rainwater_harvesting_desc',
+                                                ),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: AppColors.mediumGrey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          AppIcons.back,
+                                          color: AppColors.tealStart,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                // Knowledge Hub Section
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/knowledge_hub',
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.fieldGreen.withOpacity(0.2),
+                                          AppColors.deepAquiferBlue.withOpacity(
+                                            0.2,
+                                          ),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AppColors.fieldGreen.withOpacity(
+                                          0.3,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.fieldGreen
+                                                .withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            AppIcons.knowledge,
+                                            color: AppColors.fieldGreen,
+                                            size: 28,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.get('knowledge_hub'),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.darkGrey,
+                                                ),
+                                              ),
+                                              Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.get('knowledge_hub_desc'),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: AppColors.mediumGrey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          AppIcons.back,
+                                          color: AppColors.fieldGreen,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Water Health AI Card
+                                if (_currentData.waterHealthAI != null)
+                                  _buildWaterHealthAICard(
+                                    _currentData.waterHealthAI!,
+                                  ),
+
+                                const SizedBox(height: 24),
+
+                                // Download Report Button
+                                _buildDownloadReportButton(),
+
+                                const SizedBox(height: 32),
                               ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.fieldGreen.withOpacity(0.3),
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.fieldGreen.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.school_rounded,
-                                  color: AppColors.fieldGreen,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Knowledge Hub',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.darkGrey,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Explore educational resources',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.mediumGrey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: AppColors.fieldGreen,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
+                        ],
                       ),
-
-                      const SizedBox(height: 32),
                     ],
                   ),
+
+                  // Jal Shayak Overlay
                 ),
-              ],
+        ),
+        const JalShayakOverlay(),
+      ],
+    );
+  }
+
+  Widget _buildNoDeviceScreen() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.deepAquiferBlue.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.sensors_off_rounded,
+                size: 64,
+                color: AppColors.deepAquiferBlue,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No Sensor Connected',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.darkGrey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'You haven\'t linked a JalDharan sensor yet. Connect your device to start monitoring your water.',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.mediumGrey,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Navigate to onboarding to connect sensor
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => const _OnboardingRedirect(),
+                  ),
+                  (route) => false,
+                );
+              },
+              icon: const Icon(Icons.sensors_rounded),
+              label: const Text(
+                'Connect Sensor',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.deepAquiferBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _fetchDashboardData,
+              child: const Text(
+                'Refresh',
+                style: TextStyle(color: AppColors.mediumGrey),
+              ),
             ),
           ],
         ),
@@ -839,16 +1111,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-
   // ---------------------------------------------------------------
   // ── Download Report button ────────────────────────────────────────────────
   Widget _buildDownloadReportButton() {
     return GestureDetector(
       onTap: () async {
         if (_currentData.waterHealthAI == null) {
-           ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Wait for data to load completely before generating report.'),
+              content: Text(
+                'Wait for data to load completely before generating report.',
+              ),
               backgroundColor: AppColors.warningOrange,
             ),
           );
@@ -878,14 +1151,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
         try {
           // 2. Fetch AI summary from local Ollama via our service
-          final summary = await DashboardApiService().generateAiReport(_currentData);
+          final summary = await DashboardApiService().generateAiReport(
+            _currentData,
+          );
 
           // 3. Close the loading dialog
           if (mounted) Navigator.pop(context);
 
           // 4. Generate and show the PDF right here
           await PdfReportService.generateAndShowReport(_currentData, summary);
-
         } catch (e) {
           if (mounted) Navigator.pop(context); // Close dialog on error
           if (mounted) {
@@ -945,10 +1219,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 Text(
                   'PDF · pH, TDS, Depth, AI Analysis',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.white70,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.white70),
                 ),
               ],
             ),
@@ -1012,10 +1283,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 4),
                   Text(
                     'Waiting for AI analysis from backend…',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.mediumGrey,
-                    ),
+                    style: TextStyle(fontSize: 13, color: AppColors.mediumGrey),
                   ),
                 ],
               ),
@@ -1211,11 +1479,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     Color tdsColor = tds <= WaterThresholds.tdsMax
         ? AppColors.fieldGreen
         : AppColors.criticalRed;
-    Color depthColor = depth > 5 ? AppColors.fieldGreen : AppColors.warningOrange;
+    Color depthColor = depth > 5
+        ? AppColors.fieldGreen
+        : AppColors.warningOrange;
 
     return Row(
       children: [
-        Expanded(child: _hudTile('pH', ph.toStringAsFixed(1), '6.5–8.5', phColor, Icons.science_rounded)),
+        Expanded(
+          child: _hudTile(
+            'pH',
+            ph.toStringAsFixed(1),
+            '6.5–8.5',
+            phColor,
+            Icons.science_rounded,
+          ),
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: _hudTile(
@@ -1231,7 +1509,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: _hudTile(
             'Depth',
             '${depth.toStringAsFixed(1)} m',
-            'Current',
+            AppLocalizations.of(context)!.get('current_value'),
             depthColor,
             Icons.layers_rounded,
           ),
@@ -1285,10 +1563,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           Text(
             sub,
-            style: TextStyle(
-              fontSize: 10,
-              color: AppColors.mediumGrey,
-            ),
+            style: TextStyle(fontSize: 10, color: AppColors.mediumGrey),
           ),
         ],
       ),
@@ -1404,8 +1679,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         rainAlert.isNotEmpty &&
         !rainAlert.toLowerCase().contains('no rain') &&
         (rainAlert.toLowerCase().contains('rain') ||
-         rainAlert.toLowerCase().contains('shower') ||
-         rainAlert.toLowerCase().contains('storm'));
+            rainAlert.toLowerCase().contains('shower') ||
+            rainAlert.toLowerCase().contains('storm'));
 
     final String alertTitle = rainExpected
         ? 'Rain Expected Soon 🌧️'
@@ -1423,10 +1698,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            alertColor.withOpacity(0.1),
-            alertColor.withOpacity(0.05),
-          ],
+          colors: [alertColor.withOpacity(0.1), alertColor.withOpacity(0.05)],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: alertColor.withOpacity(0.2)),
@@ -1443,9 +1715,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                rainExpected
-                    ? Icons.umbrella_rounded
-                    : Icons.warning_rounded,
+                rainExpected ? Icons.umbrella_rounded : Icons.warning_rounded,
                 color: Colors.white,
                 size: 24,
               ),
@@ -1815,5 +2085,293 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  Widget _buildWaterHealthAICard(WaterHealthAI healthAI) {
+    // Determine status color and icon based on contamination level
+    final Color statusColor = healthAI.indicatorColor;
+    final String statusLabel = healthAI.contaminationLevel;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: statusColor.withOpacity(0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: statusColor.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with Status Badge
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Water Health Assessment',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkGrey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'AI-Powered Analysis',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.mediumGrey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Contamination Score Progress Bar
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Contamination Level',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mediumGrey,
+                      ),
+                    ),
+                    Text(
+                      '${healthAI.contaminationScore.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: healthAI.contaminationScore / 100,
+                    minHeight: 6,
+                    backgroundColor: statusColor.withOpacity(0.1),
+                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Disease Risk Badge
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warningOrange.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.warningOrange.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningOrange.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.health_and_safety_rounded,
+                      size: 14,
+                      color: AppColors.warningOrange,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Health Risk',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.mediumGrey,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          healthAI.diseaseRisk,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.warningOrange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Health Risk Tags
+            if (healthAI.healthRiskTags.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Risk Factors',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mediumGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: healthAI.healthRiskTags.map((tag) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: statusColor.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Text(
+                          tag,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: statusColor,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+
+            // Recommended Action
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.fieldGreen.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.fieldGreen.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.fieldGreen.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.lightbulb_rounded,
+                      size: 14,
+                      color: AppColors.fieldGreen,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Recommended Action',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.mediumGrey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          healthAI.recommendedAction,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.darkGrey,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Simple redirect widget that takes the user back to the onboarding flow
+/// to connect their sensor. Clears the navigation stack.
+class _OnboardingRedirect extends StatelessWidget {
+  const _OnboardingRedirect();
+
+  @override
+  Widget build(BuildContext context) {
+    return const OnboardingScreen();
   }
 }

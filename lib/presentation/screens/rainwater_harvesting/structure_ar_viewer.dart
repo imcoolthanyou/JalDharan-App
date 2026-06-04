@@ -1,21 +1,13 @@
 import 'dart:io';
-import 'package:ar_flutter_plugin_updated/ar_flutter_plugin.dart';
-import 'package:ar_flutter_plugin_updated/datatypes/config_planedetection.dart';
-import 'package:ar_flutter_plugin_updated/datatypes/node_types.dart';
-import 'package:ar_flutter_plugin_updated/managers/ar_anchor_manager.dart';
-import 'package:ar_flutter_plugin_updated/managers/ar_location_manager.dart';
-import 'package:ar_flutter_plugin_updated/managers/ar_object_manager.dart';
-import 'package:ar_flutter_plugin_updated/managers/ar_session_manager.dart';
-import 'package:ar_flutter_plugin_updated/models/ar_node.dart';
-import 'package:ar_flutter_plugin_updated/models/ar_anchor.dart';
-import 'package:ar_flutter_plugin_updated/models/ar_hittest_result.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:vector_math/vector_math_64.dart' as vector;
+import '../../../core/theme/app_colors.dart';
 
 class StructureARViewer extends StatefulWidget {
-  final String modelPath;
+  final String modelPath; // asset path e.g. assets/recharge_shaft_with_pit.glb
   final String title;
 
   const StructureARViewer({
@@ -29,12 +21,9 @@ class StructureARViewer extends StatefulWidget {
 }
 
 class _StructureARViewerState extends State<StructureARViewer> {
-  ARSessionManager? arSessionManager;
-  ARObjectManager? arObjectManager;
-  ARAnchorManager? arAnchorManager;
-
-  bool _isModelAdded = false;
-  String? _localModelPath;
+  String? _localFileUri; // file:// URI served to model-viewer
+  bool _isReady = false;
+  String? _error;
 
   @override
   void initState() {
@@ -43,127 +32,138 @@ class _StructureARViewerState extends State<StructureARViewer> {
   }
 
   Future<void> _prepareModel() async {
-    // Copy asset to local file for AR plugin
     try {
-      final filename = widget.modelPath.split('/').last;
+      // Copy the GLB asset to a local file so model_viewer_plus can serve it
+      final ByteData data = await rootBundle.load(widget.modelPath);
+      final Uint8List bytes = data.buffer.asUint8List();
 
-      // Use Application Documents Directory for better persistence/access
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/$filename');
+      final Directory dir = await getApplicationDocumentsDirectory();
+      final String filename = widget.modelPath.split('/').last;
+      final File file = File('${dir.path}/$filename');
+      await file.writeAsBytes(bytes, flush: true);
 
-      // Always overwrite to ensure latest version
-      final byteData = await rootBundle.load(widget.modelPath);
-      await file.writeAsBytes(
-        byteData.buffer.asUint8List(
-          byteData.offsetInBytes,
-          byteData.lengthInBytes,
-        ),
-      );
-
-      setState(() {
-        _localModelPath =
-            filename; // for fileSystemAppFolderGLB we usually need just the name if relative
-      });
-      debugPrint("Model copied to: ${file.path}");
+      if (mounted) {
+        setState(() {
+          _localFileUri = file.uri.toString(); // file:///...
+          _isReady = true;
+        });
+      }
     } catch (e) {
-      debugPrint("Error copying models: $e");
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
     }
-  }
-
-  @override
-  void dispose() {
-    arSessionManager?.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Stack(
-        children: [
-          ARView(
-            onARViewCreated: onARViewCreated,
-            planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
-          ),
-          if (!_isModelAdded)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _localModelPath == null
-                        ? 'Preparing models...'
-                        : 'Tap on the detected plane to place the structure',
-                    style: const TextStyle(color: Colors.white),
-                  ),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        title: Text(
+          widget.title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        backgroundColor: AppColors.deepAquiferBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              const Text(
+                'Failed to load model',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_isReady || _localFileUri == null) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: AppColors.deepAquiferBlue),
+            SizedBox(height: 16),
+            Text(
+              'Preparing 3D model...',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
-        ],
-      ),
-    );
-  }
-
-  void onARViewCreated(
-    ARSessionManager arSessionManager,
-    ARObjectManager arObjectManager,
-    ARAnchorManager arAnchorManager,
-    ARLocationManager arLocationManager,
-  ) {
-    this.arSessionManager = arSessionManager;
-    this.arObjectManager = arObjectManager;
-    this.arAnchorManager = arAnchorManager;
-
-    this.arSessionManager!.onInitialize(
-      showFeaturePoints: false,
-      showPlanes: true,
-      showWorldOrigin: false,
-      handlePans: true,
-      handleRotation: true,
-    );
-    this.arObjectManager!.onInitialize();
-
-    this.arSessionManager!.onPlaneOrPointTap = onPlaneOrPointTap;
-  }
-
-  Future<void> onPlaneOrPointTap(List<ARHitTestResult> hitTestResults) async {
-    if (_isModelAdded || hitTestResults.isEmpty || _localModelPath == null) {
-      return;
+          ],
+        ),
+      );
     }
 
-    var singleHitResult = hitTestResults.first;
-    var newAnchor = ARPlaneAnchor(
-      transformation: singleHitResult.worldTransform,
-    );
-    bool? didAddAnchor = await arAnchorManager!.addAnchor(newAnchor);
-    if (didAddAnchor == true) {
-      var newNode = ARNode(
-        type: NodeType.fileSystemAppFolderGLB,
-        uri: _localModelPath!, // Filename only, relative to document dir
-        scale: vector.Vector3(0.5, 0.5, 0.5),
-        position: vector.Vector3(0.0, 0.0, 0.0),
-        rotation: vector.Vector4(1.0, 0.0, 0.0, 0.0),
-      );
+    return Stack(
+      children: [
+        // ModelViewer with AR enabled
+        ModelViewer(
+          src: _localFileUri!,
+          alt: widget.title,
+          ar: true, // enables AR button on Android
+          arModes: const ['scene-viewer', 'webxr', 'quick-look'],
+          arScale: ArScale.auto,
+          autoRotate: true,
+          autoRotateDelay: 1000,
+          cameraControls: true,
+          shadowIntensity: 1,
+          backgroundColor: const Color(0xFF0F172A),
+        ),
 
-      bool? didAddNodeToAnchor = await arObjectManager!.addNode(
-        newNode,
-        planeAnchor: newAnchor,
-      );
-      if (didAddNodeToAnchor == true) {
-        setState(() {
-          _isModelAdded = true;
-        });
-      }
-    }
+        // Instruction overlay at bottom
+        Positioned(
+          bottom: 24,
+          left: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.65),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.touch_app_rounded, color: Colors.white70, size: 16),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Drag to rotate • Pinch to zoom • Tap AR button to view in real world',
+                    style: TextStyle(color: Colors.white70, fontSize: 11),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

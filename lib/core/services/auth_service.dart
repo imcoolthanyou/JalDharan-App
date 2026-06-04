@@ -4,8 +4,11 @@ import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import '../config/api_config.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -15,12 +18,11 @@ class AuthService {
   }
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: [
-      'email',
-      'profile',
-    ],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  static const String _jwtKey = 'jwt_token';
+  static const String _userInfoKey = 'user_info';
 
   AuthService._internal();
 
@@ -84,7 +86,9 @@ class AuthService {
       }
 
       if (kDebugMode) {
-        print('Access Token: ${googleAuth.accessToken != null ? 'Present' : 'Null'}');
+        print(
+          'Access Token: ${googleAuth.accessToken != null ? 'Present' : 'Null'}',
+        );
         print('ID Token: ${googleAuth.idToken != null ? 'Present' : 'Null'}');
       }
 
@@ -146,10 +150,9 @@ class AuthService {
       );
 
       // Create Firebase credential with the Apple credential
-      final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
-        rawNonce: rawNonce,
-      );
+      final oauthCredential = OAuthProvider(
+        'apple.com',
+      ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
 
       // Sign in to Firebase with the credential
       return await _firebaseAuth.signInWithCredential(oauthCredential);
@@ -186,14 +189,88 @@ class AuthService {
     }
   }
 
+  // ── Backend JWT methods ──────────────────────────────────────────────────
+
+  /// Sign in with Google AND exchange the Google ID token for a backend JWT
+  /// Returns true if this is a new user (first sign-in)
+  Future<bool> signInWithGoogleAndBackend() async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) throw Exception('Sign-in cancelled');
+
+    final googleAuth = await googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    if (idToken == null) throw Exception('Failed to get Google ID token');
+
+    // Sign into Firebase and detect new vs returning user
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: idToken,
+    );
+    final userCred = await _firebaseAuth.signInWithCredential(credential);
+    final isNewUser = userCred.additionalUserInfo?.isNewUser ?? false;
+
+    // Exchange with our backend (non-fatal if backend is down)
+    try {
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.authGoogleEndpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'google_token': idToken}),
+          )
+          .timeout(ApiConfig.requestTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final jwt = data['access_token'] as String;
+        await _secureStorage.write(key: _jwtKey, value: jwt);
+        final userInfo = jsonEncode({
+          'email': googleUser.email,
+          'displayName': googleUser.displayName,
+          'photoUrl': googleUser.photoUrl,
+        });
+        await _secureStorage.write(key: _userInfoKey, value: userInfo);
+      } else {
+        if (kDebugMode) print('Backend auth failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) print('Backend auth error (non-fatal): $e');
+    }
+
+    return isNewUser;
+  }
+
+  /// Get the stored JWT token
+  Future<String?> getToken() => _secureStorage.read(key: _jwtKey);
+
+  /// Returns true if a JWT exists in secure storage
+  Future<bool> isSignedInToBackend() async {
+    final token = await _secureStorage.read(key: _jwtKey);
+    return token != null && token.isNotEmpty;
+  }
+
+  /// Returns auth headers for backend API calls
+  Future<Map<String, String>> authHeaders() async {
+    final token = await getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  /// Get stored user info
+  Future<Map<String, dynamic>?> getUserInfo() async {
+    final raw = await _secureStorage.read(key: _userInfoKey);
+    if (raw == null) return null;
+    return jsonDecode(raw) as Map<String, dynamic>;
+  }
+
   // Sign Out
   Future<void> signOut() async {
     try {
-      // Sign out from Firebase
       await _firebaseAuth.signOut();
-
-      // Also sign out from Google if user was signed in with Google
       await _googleSignIn.signOut();
+      await _secureStorage.delete(key: _jwtKey);
+      await _secureStorage.delete(key: _userInfoKey);
 
       // Note: Apple Sign-In doesn't have a sign-out method,
       // the session is managed by iOS
@@ -273,8 +350,10 @@ class AuthService {
     const charset =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
     final random = Random.secure();
-    final values = List<int>.generate(32, (i) => charset.codeUnitAt(random.nextInt(charset.length)));
+    final values = List<int>.generate(
+      32,
+      (i) => charset.codeUnitAt(random.nextInt(charset.length)),
+    );
     return String.fromCharCodes(values);
   }
 }
-
