@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
-import '../screens/gamification/water_hero_screen.dart';
-import '../screens/community_settings/community_settings_screen.dart';
+import '../screens/gamification/gamification_v2_screen.dart';
+import '../screens/community_settings/profile.dart';
 import '../screens/map_grind/map_grind_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/app_localizations.dart';
@@ -23,8 +23,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const HomeScreen(),
     const AnalyticsScreen(),
     const MapGrindScreen(),
-    const WaterHeroScreen(),
-    const CommunitySettingsScreen(),
+    const GamificationV2Screen(),
+    const ProfileScreen(),
   ];
 
   @override
