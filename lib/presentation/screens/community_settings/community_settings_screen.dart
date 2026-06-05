@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jal_dharan/core/services/auth_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,7 +7,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/utils/app_icons.dart';
-import '../../../core/services/auth_service.dart';
+import '../../../core/utils/app_icons.dart';
+import '../../widgets/custom_gradient_appbar.dart';
 
 class CommunitySettingsScreen extends StatefulWidget {
   const CommunitySettingsScreen({Key? key}) : super(key: key);
@@ -26,17 +28,18 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         title: Text(
           AppLocalizations.of(context)!.get('app_settings'),
           style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
             color: AppColors.darkGrey,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
           ),
         ),
-        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: const IconThemeData(color: AppColors.darkGrey),
       ),
       body: _buildSettingsContent(),
     );

@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/models/community_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../widgets/custom_gradient_appbar.dart';
 
 class MapGrindScreen extends StatefulWidget {
   const MapGrindScreen({Key? key}) : super(key: key);
@@ -27,57 +28,14 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      appBar: CustomGradientAppBar(
+        title: AppLocalizations.of(context)!.get('community'),
+        subtitle: AppLocalizations.of(context)!.get('community_map_desc'),
+        icon: Icons.public_rounded,
+        showNotification: true,
+      ),
       body: Column(
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.public_rounded, color: Colors.white, size: 28),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppLocalizations.of(context)!.get('community'),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.get('community_map_desc'),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
           // Map Section
           Expanded(
             child: Stack(

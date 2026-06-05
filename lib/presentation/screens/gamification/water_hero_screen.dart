@@ -4,6 +4,7 @@ import '../../../core/models/gamification_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'widgets/proof_upload_dialog.dart';
+import '../../widgets/custom_gradient_appbar.dart';
 import 'dart:io';
 
 class WaterHeroScreen extends StatefulWidget {
@@ -407,17 +408,23 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         title: Text(
           AppLocalizations.of(context)!.get('gamification'),
           style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
             color: AppColors.darkGrey,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
           ),
         ),
-        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: AppColors.darkGrey),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
