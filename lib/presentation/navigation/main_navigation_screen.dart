@@ -8,6 +8,7 @@ import '../screens/map_grind/map_grind_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/utils/app_icons.dart';
+import 'package:jal_dharan/presentation/screens/home/home_screen_backup.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
@@ -20,7 +21,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    const HomeScreen(),
+    const HOmeScreenBackup(),
     const AnalyticsScreen(),
     const MapGrindScreen(),
     const GamificationV2Screen(),

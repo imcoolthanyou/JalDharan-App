@@ -15,6 +15,7 @@ import '../../../core/utils/app_icons.dart';
 import '../../widgets/home_widgets.dart';
 import '../../widgets/animated_gradient_background.dart';
 import '../../widgets/jal_shayak_overlay.dart';
+import '../../widgets/water_metrics_analytics.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/services/water_alert_service.dart';
 
@@ -587,6 +588,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       color: AppColors.fieldGreen,
                                     ),
                                   ],
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Water Metrics Analytics - Expandable Section
+                                WaterMetricsAnalytics(
+                                  data: _currentData,
+                                  onRefresh: _fetchDashboardData,
                                 ),
 
                                 const SizedBox(height: 24),
