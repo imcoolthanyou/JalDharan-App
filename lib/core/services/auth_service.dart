@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import '../config/api_config.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -18,6 +19,7 @@ class AuthService {
   }
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
@@ -35,10 +37,22 @@ class AuthService {
   // Email and Password Sign Up
   Future<UserCredential> signUpWithEmail(String email, String password) async {
     try {
-      return await _firebaseAuth.createUserWithEmailAndPassword(
+      final credential =
+      await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      await _firestore
+          .collection('users')
+          .doc(credential.user!.uid)
+          .set({
+        'uid': credential.user!.uid,
+        'email': email,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return credential;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
@@ -100,6 +114,16 @@ class AuthService {
 
       // Sign in to Firebase with the credential
       final userCred = await _firebaseAuth.signInWithCredential(credential);
+      await _firestore
+          .collection('users')
+          .doc(userCred.user!.uid)
+          .set({
+        'uid': userCred.user!.uid,
+        'email': userCred.user!.email,
+        'displayName': userCred.user!.displayName,
+        'photoURL': userCred.user!.photoURL,
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       if (kDebugMode) {
         print('Successfully signed in to Firebase: ${userCred.user?.email}');
