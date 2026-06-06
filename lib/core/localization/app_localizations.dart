@@ -425,6 +425,22 @@ class AppLocalizations {
       'change_password': 'Change Password',
       'about_app': 'About App',
       'rate_app': 'Rate App',
+      'display_name': 'Display Name',
+      'phone_number': 'Phone Number',
+      'phone': 'Phone',
+      'save_changes': 'Save Changes',
+      'image_upload_failed': 'Image upload failed. Try again.',
+      'user_default': 'User',
+
+      // Home Screen
+      'no_device_connected': 'No Device Connected',
+      'ai_analysis': 'AI Analysis',
+      'ai_analysis_desc': 'Get personalized recommendations based on your water data',
+      'report': 'Report',
+      'pump_comm_error': 'Error communicating with pump - set to OFF',
+      'pump_toggle_failed': 'Failed to toggle pump',
+      'wait_data_load': 'Wait for data to load completely before generating report.',
+      'error_generating_report': 'Error generating report',
     },
     'hi': {
       // Common
@@ -841,6 +857,22 @@ class AppLocalizations {
       'change_password': 'पासवर्ड बदलें',
       'about_app': 'ऐप के बारे में',
       'rate_app': 'ऐप रेट करें',
+      'display_name': 'प्रदर्शन नाम',
+      'phone_number': 'फ़ोन नंबर',
+      'phone': 'फ़ोन',
+      'save_changes': 'परिवर्तन सहेजें',
+      'image_upload_failed': 'छवि अपलोड विफल। पुनः प्रयास करें।',
+      'user_default': 'उपयोगकर्ता',
+
+      // Home Screen
+      'no_device_connected': 'कोई डिवाइस कनेक्ट नहीं है',
+      'ai_analysis': 'AI विश्लेषण',
+      'ai_analysis_desc': 'अपने जल डेटा के आधार पर व्यक्तिगत सिफारिशें प्राप्त करें',
+      'report': 'रिपोर्ट',
+      'pump_comm_error': 'पंप से संचार में त्रुटि - OFF पर सेट करें',
+      'pump_toggle_failed': 'पंप टॉगल करने में विफल',
+      'wait_data_load': 'रिपोर्ट उत्पन्न करने से पहले डेटा पूरी तरह लोड होने की प्रतीक्षा करें।',
+      'error_generating_report': 'रिपोर्ट उत्पन्न करने में त्रुटि',
     },
   };
 

@@ -11,7 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'dart:io';
 import '../../../core/localization/app_localizations.dart';
-import '../../../core/models/gamification_data.dart';
+import '../../../core/theme/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,14 +30,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _email = '';
   String _phone = '+91 98765 43210';
   String? _photoURL;
-  String _location = 'Fetching location...';
+  String _location = 'Loading...';
   int _waterPoints = 0;
-  int _level = 1;
   bool _isLoading = true;
   bool _isUploadingImage = false;
-
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
 
   @override
   void initState() {
@@ -53,43 +50,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    // Always set from Firebase Auth first (instant, no network needed)
     setState(() {
       _currentUser = user;
-      _displayName = user.displayName ?? 'User';
+      _displayName = user.displayName ?? (mounted ? AppLocalizations.of(context)?.get('user_default') ?? 'User' : 'User');
       _email = user.email ?? '';
       _photoURL = user.photoURL;
     });
 
     try {
-      // 1. Fetch existing Firestore doc
       final doc = await _firestore.collection('users').doc(user.uid).get();
 
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
         setState(() {
-          _displayName = data['displayName'] ?? user.displayName ?? 'User';
+          _displayName = data['displayName'] ?? user.displayName ?? (mounted ? AppLocalizations.of(context)?.get('user_default') ?? 'User' : 'User');
           _email = data['email'] ?? user.email ?? '';
           _phone = data['phone'] ?? '+91 98765 43210';
           _photoURL = data['photoURL'] ?? user.photoURL;
-          _location = data['location'] ?? 'Fetching location...';
+          _location = data['location'] ?? '';
           _waterPoints = data['waterPoints'] ?? 0;
-          _level = data['level'] ?? 1;
           _notificationsEnabled = data['notificationsEnabled'] ?? true;
-          _darkModeEnabled = data['darkModeEnabled'] ?? false;
         });
 
-        // Refresh location if never saved
         if ((data['location'] ?? '').toString().isEmpty) {
           await _fetchAndSaveLocation();
         }
       } else {
-        // 2. New user — fetch location then push
         await _fetchAndSaveLocation();
       }
 
-      // 3. ALWAYS push/merge latest auth data to Firestore
-      //    merge:true means existing fields won't be overwritten
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'displayName': _displayName,
@@ -98,16 +87,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'photoURL': _photoURL ?? '',
         'location': _location,
         'waterPoints': _waterPoints,
-        'level': _level,
         'notificationsEnabled': _notificationsEnabled,
-        'darkModeEnabled': _darkModeEnabled,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-
-      debugPrint('✅ Firestore push successful for uid: ${user.uid}');
     } catch (e) {
-      debugPrint('❌ Firestore error: $e');
+      debugPrint('Firestore error: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -120,13 +105,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          setState(() => _location = 'Location permission denied');
-          return;
+          if (mounted) {
+        setState(() => _location = AppLocalizations.of(context)!.get('location_denied'));
+      }
+      return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
-        setState(() => _location = 'Location permission permanently denied');
-        return;
+        if (mounted) {
+        setState(() => _location = AppLocalizations.of(context)!.get('location_permanently_denied'));
+      }
+      return;
       }
 
       final position = await Geolocator.getCurrentPosition(
@@ -144,7 +133,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             '${place.locality}, ${place.administrativeArea}, ${place.country}';
         setState(() => _location = locationStr);
 
-        // Save to Firestore
         if (_currentUser != null) {
           await _firestore
               .collection('users')
@@ -153,7 +141,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
     } catch (e) {
-      setState(() => _location = 'Unable to fetch location');
+      if (mounted) {
+        setState(() => _location = AppLocalizations.of(context)!.get('unable_fetch_location'));
+      }
     }
   }
 
@@ -174,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
     final XFile? image =
-    await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (image == null || _currentUser == null) return;
 
     setState(() => _isUploadingImage = true);
@@ -185,7 +175,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await ref.putFile(File(image.path));
       final downloadURL = await ref.getDownloadURL();
 
-      // Update Firestore and Firebase Auth
       await _firestore
           .collection('users')
           .doc(_currentUser!.uid)
@@ -195,11 +184,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => _photoURL = downloadURL);
     } catch (e) {
       debugPrint('Image upload failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image upload failed. Try again.')),
-        );
-      }
+      final l = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.get('image_upload_failed'))),
+      );
     } finally {
       setState(() => _isUploadingImage = false);
     }
@@ -207,6 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Edit Profile bottom sheet ──
   void _showEditProfile() {
+    final l = AppLocalizations.of(context)!;
     final nameCtrl = TextEditingController(text: _displayName);
     final phoneCtrl = TextEditingController(text: _phone);
 
@@ -214,7 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => Padding(
         padding: EdgeInsets.only(
@@ -227,18 +216,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Edit Profile',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
+            Text(
+              l.get('edit_profile'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 16),
-            _buildTextField(nameCtrl, 'Display Name', Icons.person_rounded),
+            _buildTextField(nameCtrl, l.get('display_name')),
             const SizedBox(height: 12),
-            _buildTextField(phoneCtrl, 'Phone Number', Icons.phone_rounded),
+            _buildTextField(phoneCtrl, l.get('phone_number')),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -252,7 +241,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _phone = newPhone.isNotEmpty ? newPhone : _phone;
                   });
 
-                  // Push both fields to Firestore
                   if (_currentUser != null) {
                     await _firestore
                         .collection('users')
@@ -262,24 +250,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'phone': _phone,
                       'updatedAt': FieldValue.serverTimestamp(),
                     });
-                    // Also update Firebase Auth display name
                     await _currentUser!.updateDisplayName(_displayName);
                   }
                   if (mounted) Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6D5DF6),
+                  backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Save Changes',
-                  style: TextStyle(
+                child: Text(
+                  l.get('save_changes'),
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
                 ),
@@ -291,23 +278,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildTextField(
-      TextEditingController ctrl, String label, IconData icon) {
+  Widget _buildTextField(TextEditingController ctrl, String label) {
     return TextField(
       controller: ctrl,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF6D5DF6)),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF6D5DF6), width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         filled: true,
-        fillColor: const Color(0xFFF8FAFC),
+        fillColor: AppColors.lightGrey,
       ),
     );
   }
@@ -316,613 +300,405 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F0FA),
+      backgroundColor: AppColors.lightGrey,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l.get('profile'),
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                l.get('profile_subtitle'),
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-
-              // ── Profile Card ──
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar with upload
-                    GestureDetector(
-                      onTap: _pickAndUploadImage,
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 90,
-                            height: 90,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFEDE9FE),
-                                width: 3,
-                              ),
-                            ),
-                            child: ClipOval(
-                              child: _isUploadingImage
-                                  ? Container(
-                                color: const Color(0xFFEDE9FE),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF6D5DF6),
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              )
-                                  : (_photoURL != null &&
-                                  _photoURL!.isNotEmpty)
-                                  ? Image.network(
-                                _photoURL!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _buildInitialsAvatar(),
-                              )
-                                  : _buildInitialsAvatar(),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF6D5DF6),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt_rounded,
-                                color: Colors.white,
-                                size: 15,
-                              ),
-                            ),
-                          ),
-                        ],
+                    // Title
+                    Text(
+                      l.get('settings'),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
                       ),
                     ),
+                    const SizedBox(height: 20),
 
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _displayName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEDE9FE),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.shield_rounded,
-                                      color: Color(0xFF6D5DF6),
-                                      size: 13,
-                                    ),
-                                    SizedBox(width: 4),
-                                  Text(
-                                    "Level ${UserProfile.mockCurrentUser().level}",
-                                    style: const TextStyle(
-                                      color: Color(0xFF6D5DF6),
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  "Groundwater Guardian",
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(Icons.water_drop,
-                                  color: Color(0xFF6D5DF6), size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                "$_waterPoints",
-                                style: const TextStyle(
-                                  color: Color(0xFF6D5DF6),
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                "Water Points",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {},
-                              icon: const Icon(
-                                Icons.edit_rounded,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                "Edit Profile",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF6D5DF6),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14)),
-                                padding:
-                                const EdgeInsets.symmetric(vertical: 11),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                        ],
+                    // ── Profile Card ──
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.lightGrey),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Personal Details ──
-              _SectionHeader(
-                icon: Icons.person_outline_rounded,
-                label: "Personal Details",
-              ),
-              const SizedBox(height: 12),
-              _InfoCard(
-                children: [
-                  _InfoRow(
-                    icon: Icons.email_rounded,
-                    iconBg: const Color(0xFFEDE9FE),
-                    iconColor: const Color(0xFF6D5DF6),
-                    title: l.get('email'),
-                    subtitle: _email,
-                  ),
-                  _divider(),
-                  _InfoRow(
-                    icon: Icons.phone_rounded,
-                    iconBg: const Color(0xFFDCFCE7),
-                    iconColor: const Color(0xFF16A34A),
-                    title: "Mobile Number",
-                    subtitle: "+91 98765 43210",
-                  ),
-                  _divider(),
-                  _InfoRow(
-                    icon: Icons.location_on_rounded,
-                    iconBg: const Color(0xFFE0F2FE),
-                    iconColor: const Color(0xFF0284C7),
-                    title: l.get('location'),
-                    subtitle: _location,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Preferences ──
-              _SectionHeader(
-                icon: Icons.settings_outlined,
-                label: "Preferences",
-              ),
-              const SizedBox(height: 12),
-              _InfoCard(
-                children: [
-                  // Language
-                  Consumer<LanguageProvider>(
-                    builder: (context, languageProvider, _) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
-                          _IconBox(
-                            icon: Icons.language_rounded,
-                            bg: const Color(0xFFE0F2FE),
-                            color: const Color(0xFF0284C7),
+                          // Avatar
+                          GestureDetector(
+                            onTap: _pickAndUploadImage,
+                            child: Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.lightGrey,
+                              ),
+                              child: ClipOval(
+                                child: _isUploadingImage
+                                    ? const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      )
+                                    : (_photoURL != null && _photoURL!.isNotEmpty)
+                                        ? Image.network(
+                                            _photoURL!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                _buildInitialsAvatar(),
+                                          )
+                                        : _buildInitialsAvatar(),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 14),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("Language",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                        color: Color(0xFF0F172A))),
                                 Text(
-                                  languageProvider.currentLanguage == 'hi'
-                                      ? 'हिंदी'
-                                      : 'English',
+                                  _displayName,
                                   style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _email,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.mediumGrey,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                GestureDetector(
+                                  onTap: _showEditProfile,
+                                  child: Text(
+                                    l.get('edit_profile'),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.accentBlue,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () =>
-                                _showLanguagePicker(context, languageProvider),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                    color: const Color(0xFFE2E8F0), width: 1.5),
-                                borderRadius: BorderRadius.circular(10),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ── Personal Details ──
+                    _buildSectionTitle(l.get('personal_details')),
+                    const SizedBox(height: 12),
+                    _buildSettingsCard([
+                      _buildInfoRow(l.get('email'), _email),
+                      _buildDivider(),
+                      _buildInfoRow(l.get('phone'), _phone),
+                      _buildDivider(),
+                      _buildInfoRow(l.get('location'), _location.isEmpty ? l.get('fetching_location') : _location),
+                    ]),
+
+                    const SizedBox(height: 24),
+
+                    // ── Preferences ──
+                    _buildSectionTitle(l.get('preferences')),
+                    const SizedBox(height: 12),
+                    _buildSettingsCard([
+                      // Language
+                      Consumer<LanguageProvider>(
+                        builder: (context, languageProvider, _) => Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l.get('language'),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    Text(
+                                      languageProvider.currentLanguage == 'hi'
+                                          ? l.get('hindi')
+                                          : l.get('english'),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.mediumGrey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              child: Row(
+                              GestureDetector(
+                                onTap: () => _showLanguagePicker(context, languageProvider),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: AppColors.lightGrey, width: 1.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        languageProvider.currentLanguage == 'hi'
+                                            ? l.get('hindi')
+                                            : l.get('english'),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 16,
+                                        color: AppColors.mediumGrey,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      _buildDivider(),
+                      // Notifications
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    languageProvider.currentLanguage == 'hi'
-                                        ? 'हिंदी'
-                                        : 'English',
+                                    l.get('notifications'),
                                     style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF0F172A)),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: AppColors.primary,
+                                    ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.keyboard_arrow_down_rounded,
-                                      size: 18, color: Colors.grey),
+                                  Text(
+                                    l.get('notifications_desc'),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.mediumGrey,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
+                            Switch(
+                              value: _notificationsEnabled,
+                              onChanged: (val) {
+                                setState(() => _notificationsEnabled = val);
+                                _updateField('notificationsEnabled', val);
+                              },
+                              activeColor: Colors.white,
+                              activeTrackColor: AppColors.accentBlue,
+                              inactiveThumbColor: Colors.white,
+                              inactiveTrackColor: AppColors.lightGrey,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ]),
+
+                    const SizedBox(height: 32),
+
+                    // ── Logout ──
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: _showLogoutDialog,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
+                        ),
+                        child: Text(
+                          l.get('logout'),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
 
-                  _divider(),
-
-                  // Notifications
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    child: Row(
-                      children: [
-                        _IconBox(
-                          icon: Icons.notifications_rounded,
-                          bg: const Color(0xFFDCFCE7),
-                          color: const Color(0xFF16A34A),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Notifications",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              Text(
-                                "Stay updated with important alerts",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _notificationsEnabled,
-                          onChanged: (val) {
-                            setState(() => _notificationsEnabled = val);
-                            _updateField('notificationsEnabled', val);
-                          },
-                          activeColor: Colors.white,
-                          activeTrackColor: const Color(0xFF6D5DF6),
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFE2E8F0),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  _divider(),
-
-                  // Dark Mode
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    child: Row(
-                      children: [
-                        _IconBox(
-                          icon: Icons.dark_mode_rounded,
-                          bg: const Color(0xFFEDE9FE),
-                          color: const Color(0xFF6D5DF6),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Dark Mode",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              Text(
-                                "Reduce eye strain in low light",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _darkModeEnabled,
-                          onChanged: (val) {
-                            setState(() => _darkModeEnabled = val);
-                            _updateField('darkModeEnabled', val);
-                          },
-                          activeColor: Colors.white,
-                          activeTrackColor: const Color(0xFF6D5DF6),
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFE2E8F0),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Account ──
-              _SectionHeader(
-                icon: Icons.lock_outline_rounded,
-                label: "Account",
-              ),
-              const SizedBox(height: 12),
-              _InfoCard(
-                children: [
-                  _InfoRow(
-                    icon: Icons.lock_rounded,
-                    iconBg: const Color(0xFFEDE9FE),
-                    iconColor: const Color(0xFF6D5DF6),
-                    title: l.get('change_password'),
-                    subtitle: null,
-                  ),
-                  _divider(),
-                  _InfoRow(
-                    icon: Icons.security_rounded,
-                    iconBg: const Color(0xFFDCFCE7),
-                    iconColor: const Color(0xFF16A34A),
-                    title: l.get('privacy_policy'),
-                    subtitle: null,
-                  ),
-                  _divider(),
-                  _InfoRow(
-                    icon: Icons.info_rounded,
-                    iconBg: const Color(0xFFE0F2FE),
-                    iconColor: const Color(0xFF0284C7),
-                    title: l.get('about_app'),
-                    subtitle: null,
-                  ),
-                  _divider(),
-                  _InfoRow(
-                    icon: Icons.star_rounded,
-                    iconBg: const Color(0xFFFEF9C3),
-                    iconColor: const Color(0xFFCA8A04),
-                    title: l.get('rate_app'),
-                    subtitle: null,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Logout ──
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF1F2),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _showLogoutDialog,
-                    borderRadius: BorderRadius.circular(18),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFE4E6),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.logout_rounded,
-                                color: Color(0xFFEF4444), size: 20),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              "Logout",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                                color: Color(0xFFEF4444),
-                              ),
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right,
-                              color: Color(0xFFEF4444), size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
+      ),
+    );
+  }
 
-              const SizedBox(height: 24),
-            ],
+  // ── Section title ──
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: AppColors.primary,
+      ),
+    );
+  }
+
+  // ── Settings card wrapper ──
+  Widget _buildSettingsCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lightGrey),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  // ── Simple info row (no icons) ──
+  Widget _buildInfoRow(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.mediumGrey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return const Divider(
+      height: 1,
+      indent: 16,
+      endIndent: 16,
+      color: AppColors.lightGrey,
+    );
+  }
+
+  // ── Initials avatar ──
+  Widget _buildInitialsAvatar() {
+    return Container(
+      color: AppColors.lightGrey,
+      child: Center(
+        child: Text(
+          _getInitials(),
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: AppColors.primary,
           ),
         ),
       ),
     );
   }
 
-  // ── Logout confirmation dialog ──────────────────────────────────────
+  // ── Logout confirmation dialog ──
   void _showLogoutDialog() {
+    final l = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFE4E6),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.logout_rounded,
-                color: Color(0xFFEF4444),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'Logout',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-          ],
+        title: Text(
+          l.get('logout_confirm_title'),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primary,
+          ),
         ),
-        content: const Text(
-          'Are you sure you want to logout? You will need to sign in again to access your dashboard.',
-          style: TextStyle(color: Colors.grey, fontSize: 14),
+        content: Text(
+          l.get('logout_confirm_message'),
+          style: const TextStyle(color: AppColors.mediumGrey, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey),
+            child: Text(
+              l.get('cancel'),
+              style: const TextStyle(color: AppColors.mediumGrey),
             ),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(ctx); // close dialog
-
-              // Capture navigator before async gap
+              Navigator.pop(ctx);
               final navigator = Navigator.of(context);
 
               try {
-                // Sign out from Firebase + Google + clear JWT
                 await _authService.signOut();
-
-                // Clear onboarding flag so next login goes through fresh flow
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove('onboarding_complete');
 
-                // Navigate to login, clearing the entire stack
                 if (mounted) {
                   navigator.pushNamedAndRemoveUntil('/login', (route) => false);
                 }
               } catch (e) {
                 debugPrint('Logout error: $e');
-                // Even if signOut fails, force navigate to login
                 if (mounted) {
                   navigator.pushNamedAndRemoveUntil('/login', (route) => false);
                 }
               }
             },
-            child: const Text(
-              'Logout',
-              style: TextStyle(
-                color: Color(0xFFEF4444),
+            child: Text(
+              l.get('logout_confirm'),
+              style: const TextStyle(
+                color: AppColors.error,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -932,28 +708,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInitialsAvatar() {
-    return Container(
-      color: const Color(0xFFEDE9FE),
-      child: Center(
-        child: Text(
-          _getInitials(),
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF6D5DF6),
-          ),
-        ),
-      ),
-    );
-  }
-
+  // ── Language picker ──
   void _showLanguagePicker(
       BuildContext context, LanguageProvider languageProvider) {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
@@ -961,18 +723,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Select Language",
-              style: TextStyle(
+            Text(
+              l.get('language_selector'),
+              style: const TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 16),
             _languageOption(
-              label: 'English',
-              code: 'en',
+              label: l.get('english'),
               isSelected: languageProvider.currentLanguage == 'en',
               onTap: () {
                 languageProvider.changeLanguage('en');
@@ -981,8 +742,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 12),
             _languageOption(
-              label: 'हिंदी',
-              code: 'hi',
+              label: l.get('hindi'),
               isSelected: languageProvider.currentLanguage == 'hi',
               onTap: () {
                 languageProvider.changeLanguage('hi');
@@ -998,7 +758,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _languageOption({
     required String label,
-    required String code,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
@@ -1007,11 +766,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEDE9FE) : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? AppColors.lightGrey : Colors.white,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color:
-            isSelected ? const Color(0xFF6D5DF6) : const Color(0xFFE2E8F0),
+            color: isSelected ? AppColors.primary : AppColors.lightGrey,
             width: 1.5,
           ),
         ),
@@ -1022,15 +780,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: isSelected
-                    ? const Color(0xFF6D5DF6)
-                    : const Color(0xFF0F172A),
+                color: isSelected ? AppColors.primary : AppColors.darkGrey,
               ),
             ),
             const Spacer(),
             if (isSelected)
-              const Icon(Icons.check_rounded,
-                  color: Color(0xFF6D5DF6), size: 20),
+              const Icon(Icons.check_rounded, color: AppColors.primary, size: 18),
           ],
         ),
       ),
@@ -1044,145 +799,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return parts[0][0].toUpperCase();
-  }
-
-  Widget _divider() {
-    return const Divider(
-      height: 1,
-      indent: 70,
-      endIndent: 16,
-      color: Color(0xFFF1F5F9),
-    );
-  }
-}
-
-// ── Section Header ──
-class _SectionHeader extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _SectionHeader({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEDE9FE),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: const Color(0xFF6D5DF6), size: 20),
-        ),
-        const SizedBox(width: 10),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A))),
-      ],
-    );
-  }
-}
-
-// ── Info Card ──
-class _InfoCard extends StatelessWidget {
-  final List<Widget> children;
-  const _InfoCard({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
-}
-
-// ── Info Row ──
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
-  final String title;
-  final String? subtitle;
-
-  const _InfoRow({
-    required this.icon,
-    required this.iconBg,
-    required this.iconColor,
-    required this.title,
-    this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              _IconBox(icon: icon, bg: iconBg, color: iconColor),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Color(0xFF0F172A))),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(subtitle!,
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                    ],
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Icon Box ──
-class _IconBox extends StatelessWidget {
-  final IconData icon;
-  final Color bg;
-  final Color color;
-  const _IconBox({required this.icon, required this.bg, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: color, size: 20),
-    );
   }
 }
