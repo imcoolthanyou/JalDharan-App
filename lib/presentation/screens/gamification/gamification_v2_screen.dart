@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/models/gamification_data.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../core/models/gamification_data.dart';
 import 'widgets/proof_upload_dialog.dart';
 import 'widgets/task_acceptance_dialog.dart';
 import '../notifications/notifications_screen.dart';
@@ -23,6 +23,19 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
   int _totalPoints = 0;
   List<QueryDocumentSnapshot> _leaderboardUsers = [];
   int _currentUserRank = 0;
+
+  static const _medalColors = [
+    Color(0xFFFFD700),
+    Color(0xFFC0C0C0),
+    Color(0xFFCD7F32),
+  ];
+  static const _avatarColors = [
+    Color(0xFFFBBF24),
+    Color(0xFF60A5FA),
+    Color(0xFFA78BFA),
+    Color(0xFF34D399),
+    Color(0xFFF87171),
+  ];
 
   @override
   void initState() {
@@ -268,19 +281,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
   }
 
   void _showLeaderboardDialog() {
-    final medalColors = [
-      const Color(0xFFFFD700),
-      const Color(0xFFC0C0C0),
-      const Color(0xFFCD7F32),
-    ];
-    final avatarColors = [
-      const Color(0xFFFBBF24),
-      const Color(0xFF60A5FA),
-      const Color(0xFFA78BFA),
-      const Color(0xFF34D399),
-      const Color(0xFFF87171),
-    ];
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -357,10 +357,10 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           decoration: index < 3
                               ? BoxDecoration(
                             shape: BoxShape.circle,
-                            color: medalColors[index]
+                            color: _medalColors[index]
                                 .withOpacity(0.15),
                             border: Border.all(
-                                color: medalColors[index], width: 2),
+                                color: _medalColors[index], width: 2),
                           )
                               : BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
@@ -375,7 +375,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 color: index < 3
-                                    ? medalColors[index]
+                                    ? _medalColors[index]
                                     : isMe
                                     ? const Color(0xFF6D5DF6)
                                     : const Color(0xFF64748B),
@@ -391,7 +391,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           decoration: BoxDecoration(
                             color: isMe
                                 ? const Color(0xFF6D5DF6)
-                                : avatarColors[index % avatarColors.length]
+                                : _avatarColors[index % _avatarColors.length]
                                 .withOpacity(0.25),
                             shape: BoxShape.circle,
                           ),
@@ -403,8 +403,8 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 fontSize: 14,
                                 color: isMe
                                     ? Colors.white
-                                    : avatarColors[
-                                index % avatarColors.length],
+                                    : _avatarColors[
+                                index % _avatarColors.length],
                               ),
                             ),
                           ),
@@ -498,6 +498,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0FA),
       body: SafeArea(
@@ -955,9 +956,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                               initials: initials,
                               name: name,
                               pts: pts.toString(),
-                              avatarColor: avatarColors[index],
+                              avatarColor: _avatarColors[index],
                               isUp: index < 2,
-                              medalColor: medalColors[index],
+                              medalColor: _medalColors[index],
                             ),
                             _divider(),
                           ],
@@ -1087,197 +1088,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
           ),
         ),
       ),
-    );
-  }
-  void _showAllTasksDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        maxChildSize: 0.95,
-        builder: (_, controller) => Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "All Tasks",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.separated(
-                controller: controller,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _dailyTasks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final task = _dailyTasks[index];
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        // REPLACE
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: [
-                              const Color(0xFFDDD6FE),
-                              const Color(0xFFCCFBF1),
-                              const Color(0xFFFEF9C3),
-                              const Color(0xFFFFE4E6),
-                              const Color(0xFFE0F2FE),
-                            ][index % 5],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            [
-                              Icons.speed_rounded,
-                              Icons.water_rounded,
-                              Icons.science_rounded,
-                              Icons.plumbing_rounded,
-                              Icons.edit_note_rounded,
-                            ][index % 5],
-                            color: [
-                              const Color(0xFF6D5DF6),
-                              const Color(0xFF0D9488),
-                              const Color(0xFFCA8A04),
-                              const Color(0xFFE11D48),
-                              const Color(0xFF0284C7),
-                            ][index % 5],
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                task.title,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                task.description,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEDE9FE),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                "+${task.points} PTS",
-                                style: const TextStyle(
-                                  color: Color(0xFF6D5DF6),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: 100,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _onAcceptTask(task);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6D5DF6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  elevation: 0,
-                                ),
-                                child: const Text(
-                                  "Accept",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _bubble(double size, double opacity) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withOpacity(opacity),
-          width: 1.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _divider() {
-    return const Divider(
-      height: 1,
-      indent: 66,
-      endIndent: 16,
-      color: Color(0xFFF1F5F9),
     );
   }
 }

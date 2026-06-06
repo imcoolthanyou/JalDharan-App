@@ -138,12 +138,12 @@ class GroundwaterData {
     debugPrint('Groundwater trend map: ' + trend.toString());
 
     // sensor.distance is the distance from sensor to water surface in cm
+    // This is the raw ultrasonic sensor reading — use it directly as the
+    // displayed depth value (e.g., 20 cm → 0.2 m).
     final sensorDistanceCm =
         (sensor['distance'] ?? sensor['sensor_distance_cm'] ?? 0.0).toDouble();
-    // Derive water depth from sensor distance (assuming 50m total borewell depth)
     final totalDepth = 50.0;
-    final currentDepth = (sensor['water_depth_m'] ?? (sensorDistanceCm / 100))
-        .toDouble();
+    final currentDepth = sensorDistanceCm / 100;
 
     return GroundwaterData(
       currentDepth: currentDepth,
@@ -205,10 +205,10 @@ class GroundwaterData {
     final trend = json['groundwater_trend'] ?? {}; // Safely handle null
     final weather = json['weather_data'] ?? {}; // Safely handle null
 
-    final currentDepth = (sensor['water_depth_m'] ?? 0.0).toDouble();
+    final sensorDistanceCm =
+        (sensor['distance'] ?? sensor['sensor_distance_cm'] ?? 0.0).toDouble();
     final totalDepth = 50.0;
-    final sensorDistanceCm = (sensor['sensor_distance_cm'] ?? 0.0)
-        .toDouble(); // New field
+    final currentDepth = sensorDistanceCm / 100;
 
     // Parse new session data
     final flowRateThisSession =
@@ -273,10 +273,10 @@ class GroundwaterData {
   /// This ONLY contains raw sensor values, not calculated data
   /// For complete data, use fromJson() with /mobile/dashboard response
   factory GroundwaterData.fromSensorUpdate(Map<String, dynamic> json) {
-    final currentDepth = (json['water_depth_m'] ?? 0.0).toDouble();
+    final sensorDistanceCm =
+        (json['distance'] ?? json['sensor_distance_cm'] ?? 0.0).toDouble();
     final totalDepth = 50.0;
-    final sensorDistanceCm = (json['sensor_distance_cm'] ?? 0.0)
-        .toDouble(); // New field
+    final currentDepth = sensorDistanceCm / 100;
 
     return GroundwaterData(
       currentDepth: currentDepth,
@@ -318,12 +318,11 @@ class GroundwaterData {
   /// Merge raw sensor data from Socket.IO with calculated data from REST API
   /// This keeps sensor values fresh from Socket while preserving calculated data
   GroundwaterData mergeWithSensorUpdate(Map<String, dynamic> sensorData) {
-    final currentDepth = (sensorData['water_depth_m'] ?? this.currentDepth)
-        .toDouble();
-    final totalDepth = this.totalDepth;
     final sensorDistanceCm =
-        (sensorData['sensor_distance_cm'] ?? this.sensorDistanceCm)
-            .toDouble(); // New field
+        (sensorData['distance'] ?? sensorData['sensor_distance_cm'] ?? this.sensorDistanceCm)
+            .toDouble();
+    final totalDepth = this.totalDepth;
+    final currentDepth = sensorDistanceCm / 100;
 
     return GroundwaterData(
       currentDepth: currentDepth,

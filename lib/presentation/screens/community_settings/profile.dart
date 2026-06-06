@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,8 +9,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '../../../core/providers/language_provider.dart';
-import '../../../core/services/auth_service.dart';
+import 'dart:io';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/models/gamification_data.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -313,6 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0FA),
       body: SafeArea(
@@ -800,7 +802,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () {},
+                    onTap: _showLogoutDialog,
                     borderRadius: BorderRadius.circular(18),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -841,6 +843,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Logout confirmation dialog ──────────────────────────────────────
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFE4E6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: Color(0xFFEF4444),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Logout',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to logout? You will need to sign in again to access your dashboard.',
+          style: TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // close dialog
+
+              // Capture navigator before async gap
+              final navigator = Navigator.of(context);
+
+              try {
+                // Sign out from Firebase + Google + clear JWT
+                await _authService.signOut();
+
+                // Clear onboarding flag so next login goes through fresh flow
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('onboarding_complete');
+
+                // Navigate to login, clearing the entire stack
+                if (mounted) {
+                  navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+                }
+              } catch (e) {
+                debugPrint('Logout error: $e');
+                // Even if signOut fails, force navigate to login
+                if (mounted) {
+                  navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+                }
+              }
+            },
+            child: const Text(
+              'Logout',
+              style: TextStyle(
+                color: Color(0xFFEF4444),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

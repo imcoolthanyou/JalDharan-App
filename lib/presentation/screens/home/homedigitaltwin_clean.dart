@@ -50,25 +50,14 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
     super.dispose();
   }
 
-  /// Derive quality label from actual sensor values (pH + TDS)
-  /// so it always reflects real data regardless of backend field
+  /// Use backend qualityStatus as source of truth so it stays in sync
+  /// with the app bar and metric cards. Falls back to local pH/TDS
+  /// calculation only when backend status is empty/unknown.
   String _formatWaterQuality(String status) {
-    final ph = _currentData.phLevel;
-    final tds = _currentData.tdsLevel;
+    final s = status.trim().toLowerCase();
 
-    // If we have real sensor data, compute quality from it
-    if (ph > 0 && tds > 0) {
-      final bool phOk = ph >= 6.5 && ph <= 8.5;
-      final bool tdsOk = tds <= 500;
-
-      if (phOk && tdsOk && tds <= 300) return '✅ Excellent';
-      if (phOk && tdsOk) return '✅ Good';
-      if (!phOk && !tdsOk) return '❌ Very Poor';
-      return '⚠️ Fair';
-    }
-
-    // Fallback to status string from backend
-    switch (status.toLowerCase()) {
+    // ── Use backend status when available (keeps all screens consistent) ──
+    switch (s) {
       case 'excellent':
         return '✅ Excellent';
       case 'good':
@@ -78,10 +67,25 @@ class _HomeDigitalTwinState extends State<HomeDigitalTwin> {
       case 'poor':
         return '⚠️ Poor';
       case 'very_poor':
-        return '❌ Very Poor';
-      default:
-        return '⚠️ Fair';
+      case 'critical':
+        return '❌ Critical';
     }
+
+    // ── Fallback: compute locally when backend status is empty/unknown ──
+    final ph = _currentData.phLevel;
+    final tds = _currentData.tdsLevel;
+
+    if (ph > 0 && tds > 0) {
+      final bool phOk = ph >= 6.5 && ph <= 8.5;
+      final bool tdsOk = tds <= 500;
+
+      if (phOk && tdsOk && tds <= 300) return '✅ Excellent';
+      if (phOk && tdsOk) return '✅ Good';
+      if (!phOk && !tdsOk) return '❌ Critical';
+      return '⚠️ Fair';
+    }
+
+    return '⚠️ Fair';
   }
 
   String _formatPumpStatus(String status) {
