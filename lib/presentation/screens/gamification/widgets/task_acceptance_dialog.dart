@@ -59,7 +59,7 @@ class _TaskAcceptanceDialogState extends State<TaskAcceptanceDialog> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -133,7 +133,7 @@ class _TaskAcceptanceDialogState extends State<TaskAcceptanceDialog> {
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.deepAquiferBlue,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(

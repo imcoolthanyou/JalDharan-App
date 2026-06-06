@@ -523,9 +523,9 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                       height: 28,
                       decoration: BoxDecoration(
                         color: done
-                            ? AppColors.fieldGreen
+                            ? AppColors.primary
                             : active
-                            ? AppColors.deepAquiferBlue
+                            ? AppColors.primary
                             : AppColors.lightGrey,
                         shape: BoxShape.circle,
                       ),
@@ -554,7 +554,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                       style: TextStyle(
                         fontSize: 10,
                         color: active
-                            ? AppColors.deepAquiferBlue
+                            ? AppColors.primary
                             : AppColors.mediumGrey,
                         fontWeight: active ? FontWeight.w700 : FontWeight.w400,
                       ),
@@ -567,7 +567,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                   child: Container(
                     height: 2,
                     margin: const EdgeInsets.only(bottom: 20),
-                    color: done ? AppColors.fieldGreen : AppColors.lightGrey,
+                    color: done ? AppColors.primary : AppColors.lightGrey,
                   ),
                 ),
             ],
@@ -597,7 +597,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
       key: const ValueKey('scan'),
       children: [
         if (_scanning) ...[
-          const CircularProgressIndicator(color: AppColors.deepAquiferBlue),
+          const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: 16),
           const Text(
             'Scanning for JalDharan device...',
@@ -608,15 +608,15 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.fieldGreen.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.fieldGreen.withOpacity(0.3)),
+              border: Border.all(color: AppColors.primary.withValues(alpha:0.3)),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.sensors_rounded,
-                  color: AppColors.fieldGreen,
+                  color: AppColors.primary,
                   size: 28,
                 ),
                 const SizedBox(width: 12),
@@ -627,7 +627,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                       const Text(
                         'JalDharan device found nearby!',
                         style: TextStyle(
-                          color: AppColors.fieldGreen,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
@@ -657,7 +657,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.deepAquiferBlue,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -669,7 +669,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
         ] else ...[
           const Icon(
             Icons.sensors_off_rounded,
-            color: AppColors.warningOrange,
+            color: AppColors.warning,
             size: 48,
           ),
           const SizedBox(height: 12),
@@ -684,8 +684,8 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Scan Again'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.deepAquiferBlue,
-              side: const BorderSide(color: AppColors.deepAquiferBlue),
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -715,7 +715,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.deepAquiferBlue.withOpacity(0.06),
+            color: AppColors.primary.withValues(alpha:0.06),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -725,7 +725,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
-                    color: AppColors.deepAquiferBlue,
+                    color: AppColors.primary,
                     size: 20,
                   ),
                   SizedBox(width: 8),
@@ -733,7 +733,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                     'How to connect',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -751,9 +751,9 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.criticalRed.withOpacity(0.08),
+              color: AppColors.error.withValues(alpha:0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.criticalRed.withOpacity(0.3)),
+              border: Border.all(color: AppColors.error.withValues(alpha:0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -762,7 +762,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                   children: [
                     const Icon(
                       Icons.error_outline_rounded,
-                      color: AppColors.criticalRed,
+                      color: AppColors.error,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -770,7 +770,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                       child: Text(
                         _step2Error!,
                         style: const TextStyle(
-                          color: AppColors.criticalRed,
+                          color: AppColors.error,
                           fontSize: 12,
                         ),
                       ),
@@ -782,13 +782,13 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.criticalRed.withOpacity(0.1),
+                      color: AppColors.error.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       _wifiDiagnostic!,
                       style: const TextStyle(
-                        color: AppColors.criticalRed,
+                        color: AppColors.error,
                         fontSize: 11,
                         fontFamily: 'monospace',
                       ),
@@ -801,7 +801,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                   const Text(
                     'Fix: Turn OFF mobile data temporarily',
                     style: TextStyle(
-                      color: AppColors.criticalRed,
+                      color: AppColors.error,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -831,8 +831,8 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.deepAquiferBlue,
-                  side: const BorderSide(color: AppColors.deepAquiferBlue),
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -862,7 +862,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.fieldGreen,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -885,7 +885,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
             width: 20,
             height: 20,
             decoration: const BoxDecoration(
-              color: AppColors.deepAquiferBlue,
+              color: AppColors.primary,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -921,14 +921,14 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.fieldGreen.withOpacity(0.08),
+              color: AppColors.primary.withValues(alpha:0.08),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.memory_rounded,
-                  color: AppColors.fieldGreen,
+                  color: AppColors.primary,
                   size: 16,
                 ),
                 const SizedBox(width: 8),
@@ -936,7 +936,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
                   'Device: $_espMac',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors.fieldGreen,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -998,7 +998,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
           const SizedBox(height: 10),
           Text(
             _step3Error!,
-            style: const TextStyle(color: AppColors.criticalRed, fontSize: 12),
+            style: const TextStyle(color: AppColors.error, fontSize: 12),
           ),
         ],
         const SizedBox(height: 20),
@@ -1021,7 +1021,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.deepAquiferBlue,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -1040,7 +1040,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
       key: const ValueKey('linking'),
       children: [
         if (_linking) ...[
-          const CircularProgressIndicator(color: AppColors.deepAquiferBlue),
+          const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: 16),
           Text(
             _linkMessage,
@@ -1056,14 +1056,14 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
         ] else if (_linked) ...[
           const Icon(
             Icons.check_circle_rounded,
-            color: AppColors.fieldGreen,
+            color: AppColors.primary,
             size: 64,
           ),
           const SizedBox(height: 16),
           Text(
             _linkMessage,
             style: const TextStyle(
-              color: AppColors.fieldGreen,
+              color: AppColors.primary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -1072,7 +1072,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
         ] else if (_linkTimeout) ...[
           const Icon(
             Icons.info_outline_rounded,
-            color: AppColors.warningOrange,
+            color: AppColors.warning,
             size: 48,
           ),
           const SizedBox(height: 12),
@@ -1091,8 +1091,8 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Restart Setup'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.deepAquiferBlue,
-              side: const BorderSide(color: AppColors.deepAquiferBlue),
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1100,7 +1100,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
           ),
         ] else ...[
           // Credentials sent, waiting for restart
-          const CircularProgressIndicator(color: AppColors.tealStart),
+          const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: 16),
           const Text(
             'Credentials sent! Your sensor is restarting...',

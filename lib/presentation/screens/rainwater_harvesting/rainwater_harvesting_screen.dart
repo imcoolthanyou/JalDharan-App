@@ -124,7 +124,7 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Location fetched: $address'),
-              backgroundColor: AppColors.fieldGreen,
+              backgroundColor: AppColors.primary,
             ),
           );
         }
@@ -266,7 +266,7 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                   content: Text(
                     'Area: ${areaInSqft.toStringAsFixed(1)} sqft, Location updated',
                   ),
-                  backgroundColor: AppColors.fieldGreen,
+                  backgroundColor: AppColors.primary,
                 ),
               );
             }
@@ -329,12 +329,12 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: AppColors.fieldGreen,
+                                    color: AppColors.primary,
                                   ),
                                 )
                               : const Icon(
                                   Icons.search,
-                                  color: AppColors.fieldGreen,
+                                  color: AppColors.primary,
                                 ),
                           onPressed: () =>
                               _searchLocation(_locationController.text),
@@ -367,7 +367,7 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                         content: Text(
                           'Location selected: ${suggestion.displayName}',
                         ),
-                        backgroundColor: AppColors.fieldGreen,
+                        backgroundColor: AppColors.primary,
                       ),
                     );
                   },
@@ -397,8 +397,8 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.deepAquiferBlue,
-                    side: const BorderSide(color: AppColors.deepAquiferBlue),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -415,10 +415,10 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.fieldGreen.withOpacity(0.08),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.fieldGreen.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -426,7 +426,7 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                       const Icon(
                         Icons.location_on_rounded,
                         size: 14,
-                        color: AppColors.fieldGreen,
+                        color: AppColors.primary,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -435,7 +435,7 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.fieldGreen,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -495,10 +495,10 @@ class _RainwaterHarvestingScreenState extends State<RainwaterHarvestingScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.fieldGreen.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.map, color: AppColors.fieldGreen),
+                      child: const Icon(Icons.map, color: AppColors.primary),
                     ),
                   ),
                 ],

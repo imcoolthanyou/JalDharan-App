@@ -32,13 +32,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Color _getTypeColor(String type) {
     switch (type) {
       case 'alert':
-        return AppColors.warningOrange;
+        return AppColors.warning;
       case 'task':
-        return AppColors.deepAquiferBlue;
+        return AppColors.primary;
       case 'achievement':
-        return AppColors.fieldGreen;
+        return Color(0xFF4CAF50);
       case 'community':
-        return AppColors.tealStart;
+        return Colors.yellow;
       default:
         return AppColors.mediumGrey;
     }
@@ -103,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -133,7 +133,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         });
                       },
                       backgroundColor: Colors.white,
-                      selectedColor: AppColors.deepAquiferBlue,
+                      selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -143,7 +143,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                       side: BorderSide(
                         color: isSelected
-                            ? AppColors.deepAquiferBlue
+                            ? AppColors.primary
                             : AppColors.mediumGrey.withOpacity(0.3),
                       ),
                     ),
@@ -286,7 +286,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           width: 8,
                           height: 8,
                           decoration: const BoxDecoration(
-                            color: AppColors.deepAquiferBlue,
+                            color: AppColors.primary,
                             shape: BoxShape.circle,
                           ),
                         ),

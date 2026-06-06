@@ -42,7 +42,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     final filteredArticles = _getFilteredArticles();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.lightGrey,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -104,7 +104,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         setState(() => _selectedCategory = key);
                       },
                       backgroundColor: Colors.white,
-                      selectedColor: AppColors.deepAquiferBlue,
+                      selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -112,8 +112,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       ),
                       side: BorderSide(
                         color: isSelected
-                            ? AppColors.deepAquiferBlue
-                            : AppColors.mediumGrey.withOpacity(0.3),
+                            ? AppColors.primary
+                            : AppColors.mediumGrey.withValues(alpha: 0.3),
                       ),
                     ),
                   );
@@ -135,7 +135,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             Icon(
                               Icons.article_outlined,
                               size: 48,
-                              color: AppColors.mediumGrey.withOpacity(0.5),
+                              color: AppColors.mediumGrey.withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -185,7 +185,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
@@ -206,12 +206,12 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       fit: BoxFit.fill,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: AppColors.fieldGreen.withOpacity(0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           child: Center(
                             child: Icon(
                               Icons.image_outlined,
                               size: 48,
-                              color: AppColors.fieldGreen.withOpacity(0.5),
+                              color: AppColors.primary.withValues(alpha: 0.5),
                             ),
                           ),
                         );
@@ -226,7 +226,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                                   ? loadingProgress.cumulativeBytesLoaded /
                                         loadingProgress.expectedTotalBytes!
                                   : null,
-                              color: AppColors.deepAquiferBlue,
+                              color: AppColors.primary,
                             ),
                           ),
                         );
@@ -261,7 +261,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 8,
                               ),
                             ],
@@ -271,7 +271,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                                 ? Icons.favorite
                                 : Icons.favorite_outline,
                             color: article.isFavorite
-                                ? AppColors.criticalRed
+                                ? AppColors.error
                                 : AppColors.mediumGrey,
                             size: 20,
                           ),
@@ -296,7 +296,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.deepAquiferBlue.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -306,7 +306,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.deepAquiferBlue,
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -377,7 +377,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not open PDF: $e'),
-            backgroundColor: AppColors.criticalRed,
+            backgroundColor: AppColors.error,
           ),
         );
       }

@@ -8,7 +8,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/utils/app_icons.dart';
 import '../../../core/utils/app_icons.dart';
-import '../../widgets/custom_gradient_appbar.dart';
+
 
 class CommunitySettingsScreen extends StatefulWidget {
   const CommunitySettingsScreen({Key? key}) : super(key: key);
@@ -274,7 +274,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.deepAquiferBlue,
+            activeColor: AppColors.primary,
           ),
         ],
       ),
@@ -294,11 +294,11 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDestructive
-              ? AppColors.criticalRed.withOpacity(0.05)
+              ? AppColors.error.withOpacity(0.05)
               : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: isDestructive
-              ? Border.all(color: AppColors.criticalRed.withOpacity(0.2))
+              ? Border.all(color: AppColors.error.withOpacity(0.2))
               : null,
           boxShadow: isDestructive
               ? null
@@ -316,15 +316,15 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDestructive
-                    ? AppColors.criticalRed.withOpacity(0.1)
-                    : AppColors.deepAquiferBlue.withOpacity(0.1),
+                    ? AppColors.error.withOpacity(0.1)
+                    : AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
                 color: isDestructive
-                    ? AppColors.criticalRed
-                    : AppColors.deepAquiferBlue,
+                    ? AppColors.error
+                    : AppColors.primary,
                 size: 20,
               ),
             ),
@@ -339,7 +339,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: isDestructive
-                          ? AppColors.criticalRed
+                          ? AppColors.error
                           : AppColors.darkGrey,
                     ),
                   ),
@@ -359,7 +359,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
               Icons.arrow_forward_ios_rounded,
               size: 16,
               color: isDestructive
-                  ? AppColors.criticalRed
+                  ? AppColors.error
                   : AppColors.mediumGrey,
             ),
           ],
@@ -380,11 +380,11 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.deepAquiferBlue.withOpacity(0.08)
+              ? AppColors.primary.withOpacity(0.08)
               : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.deepAquiferBlue : Colors.transparent,
+            color: isSelected ? AppColors.primary : Colors.transparent,
             width: 1.5,
           ),
           boxShadow: [
@@ -401,13 +401,13 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.deepAquiferBlue.withOpacity(0.15)
-                    : AppColors.deepAquiferBlue.withOpacity(0.08),
+                    ? AppColors.primary.withOpacity(0.15)
+                    : AppColors.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 AppIcons.language,
-                color: AppColors.deepAquiferBlue,
+                color: AppColors.primary,
                 size: 20,
               ),
             ),
@@ -419,7 +419,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected
-                      ? AppColors.deepAquiferBlue
+                      ? AppColors.primary
                       : AppColors.darkGrey,
                 ),
               ),
@@ -427,7 +427,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
             if (isSelected)
               Icon(
                 AppIcons.checkmark,
-                color: AppColors.deepAquiferBlue,
+                color: AppColors.primary,
                 size: 20,
               ),
           ],
@@ -473,7 +473,7 @@ class _CommunitySettingsScreenState extends State<CommunitySettingsScreen> {
             },
             child: Text(
               AppLocalizations.of(context)!.get('logout_confirm'),
-              style: const TextStyle(color: AppColors.criticalRed),
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],

@@ -60,13 +60,13 @@ class _StructureARViewerState extends State<StructureARViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
         title: Text(
           widget.title,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
-        backgroundColor: AppColors.deepAquiferBlue,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -109,7 +109,7 @@ class _StructureARViewerState extends State<StructureARViewer> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: AppColors.deepAquiferBlue),
+            CircularProgressIndicator(color: AppColors.primary),
             SizedBox(height: 16),
             Text(
               'Preparing 3D model...',
@@ -133,7 +133,7 @@ class _StructureARViewerState extends State<StructureARViewer> {
           autoRotateDelay: 1000,
           cameraControls: true,
           shadowIntensity: 1,
-          backgroundColor: const Color(0xFF0F172A),
+          backgroundColor: AppColors.primary,
         ),
 
         // Instruction overlay at bottom
@@ -144,7 +144,7 @@ class _StructureARViewerState extends State<StructureARViewer> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.65),
+              color: Colors.black.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Row(

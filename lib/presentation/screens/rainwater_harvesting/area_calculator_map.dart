@@ -75,8 +75,8 @@ class _AreaCalculatorMapState extends State<AreaCalculatorMap> {
         Polygon(
           polygonId: PolygonId('completed_$i'),
           points: _completedPolygons[i],
-          fillColor: AppColors.fieldGreen.withOpacity(0.3),
-          strokeColor: AppColors.fieldGreen,
+          fillColor: AppColors.primary.withValues(alpha: 0.3),
+          strokeColor: AppColors.primary,
           strokeWidth: 2,
         ),
       );
@@ -98,8 +98,8 @@ class _AreaCalculatorMapState extends State<AreaCalculatorMap> {
         Polygon(
           polygonId: const PolygonId('current'),
           points: _currentPolyPoints,
-          fillColor: AppColors.deepAquiferBlue.withOpacity(0.3),
-          strokeColor: AppColors.deepAquiferBlue,
+          fillColor: AppColors.primary.withValues(alpha: 0.3),
+          strokeColor: AppColors.primary,
           strokeWidth: 2,
         ),
       );
@@ -125,7 +125,7 @@ class _AreaCalculatorMapState extends State<AreaCalculatorMap> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Roof section saved! Tap to start next section."),
-        backgroundColor: AppColors.fieldGreen,
+        backgroundColor: AppColors.primary,
       ),
     );
   }
@@ -186,7 +186,7 @@ class _AreaCalculatorMapState extends State<AreaCalculatorMap> {
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     spreadRadius: 2,
                   ),
@@ -224,7 +224,7 @@ class _AreaCalculatorMapState extends State<AreaCalculatorMap> {
                                 ? _undo
                                 : null,
                             icon: const Icon(Icons.undo),
-                            color: AppColors.warningOrange,
+                            color: AppColors.warning,
                             tooltip: "Undo Last Point",
                           ),
                           IconButton(
@@ -232,7 +232,7 @@ class _AreaCalculatorMapState extends State<AreaCalculatorMap> {
                                 ? _finishCurrentPolygon
                                 : null,
                             icon: const Icon(Icons.add_circle_outline),
-                            color: AppColors.fieldGreen,
+                            color: AppColors.primary,
                             tooltip: "Finish this section",
                           ),
                         ],

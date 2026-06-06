@@ -4,7 +4,6 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/models/community_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../widgets/custom_gradient_appbar.dart';
 
 class MapGrindScreen extends StatefulWidget {
   const MapGrindScreen({Key? key}) : super(key: key);
@@ -27,12 +26,19 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: CustomGradientAppBar(
-        title: AppLocalizations.of(context)!.get('community'),
-        subtitle: AppLocalizations.of(context)!.get('community_map_desc'),
-        icon: Icons.public_rounded,
-        showNotification: true,
+      backgroundColor: AppColors.lightGrey,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          AppLocalizations.of(context)!.get('community'),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppColors.primary,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -76,15 +82,15 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: _selectedMember?.name == member.name
-                                        ? AppColors.deepAquiferBlue
-                                        : AppColors.tealStart,
+                                        ? AppColors.primary
+                                        : AppColors.mediumGrey,
                                     border: Border.all(
                                       color: Colors.white,
                                       width: 3,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color: Colors.black.withValues(alpha: 0.2),
                                         blurRadius: 8,
                                         spreadRadius: 2,
                                       ),
@@ -134,7 +140,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 20,
             spreadRadius: 0,
             offset: const Offset(0, 10),
@@ -148,11 +154,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: AppColors.primary,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -165,7 +167,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                   height: 50,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                   ),
                   child: Center(
                     child: Text(
@@ -211,9 +213,9 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.4)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
                     ),
                     child: const Text(
                       'Admin',
@@ -240,7 +242,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                         icon: Icons.water_drop_rounded,
                         label: 'Water Depth',
                         value: '${member.waterDepth.toStringAsFixed(1)}m',
-                        color: AppColors.deepAquiferBlue,
+                        color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -249,7 +251,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                         icon: Icons.stars_rounded,
                         label: 'Water Score',
                         value: '${member.waterScore.toInt()}/100',
-                        color: AppColors.fieldGreen,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -259,17 +261,17 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.deepAquiferBlue.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.deepAquiferBlue.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.emoji_events_rounded,
-                        color: AppColors.deepAquiferBlue,
+                        color: AppColors.primary,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -290,7 +292,7 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.deepAquiferBlue,
+                                color: AppColors.primary,
                               ),
                             ),
                           ],
@@ -316,9 +318,9 @@ class _MapGrindScreenState extends State<MapGrindScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

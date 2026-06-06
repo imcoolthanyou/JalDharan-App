@@ -622,11 +622,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                 height: 210,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(28),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF5B4FE8), Color(0xFF38BDF8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: AppColors.primary,
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF5B4FE8).withValues(alpha: 0.4),

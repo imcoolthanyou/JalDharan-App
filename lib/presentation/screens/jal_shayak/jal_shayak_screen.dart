@@ -160,7 +160,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.lightGrey,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -169,7 +169,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
-                color: AppColors.deepAquiferBlue,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -196,7 +196,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
               onPressed: _stopSpeaking,
               icon: const Icon(
                 Icons.stop_circle_rounded,
-                color: AppColors.deepAquiferBlue,
+                color: AppColors.primary,
               ),
             ),
         ],
@@ -227,7 +227,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, -2),
                 ),
@@ -260,7 +260,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: AppColors.deepAquiferBlue,
+                            color: AppColors.primary,
                             width: 1.5,
                           ),
                         ),
@@ -280,7 +280,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                       decoration: BoxDecoration(
                         color: _isLoading
                             ? AppColors.mediumGrey
-                            : AppColors.deepAquiferBlue,
+                            : AppColors.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -310,11 +310,11 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: message.isUser ? AppColors.deepAquiferBlue : Colors.white,
+            color: message.isUser ? AppColors.primary : Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -345,14 +345,14 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                             ? Icons.stop_circle_outlined
                             : Icons.volume_up_rounded,
                         size: 16,
-                        color: AppColors.deepAquiferBlue,
+                        color: AppColors.primary,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         _isSpeaking ? 'Stop' : 'Listen',
                         style: const TextStyle(
                           fontSize: 11,
-                          color: AppColors.deepAquiferBlue,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -379,7 +379,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -394,7 +394,7 @@ class _JalShayakScreenState extends State<JalShayakScreen> {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.deepAquiferBlue,
+                    AppColors.primary,
                   ),
                 ),
               ),

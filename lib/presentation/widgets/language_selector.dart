@@ -35,7 +35,7 @@ class LanguageSelectorButton extends StatelessWidget {
                   children: [
                     Icon(
                       AppIcons.language,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 8),
                     const Text('English'),
@@ -48,7 +48,7 @@ class LanguageSelectorButton extends StatelessWidget {
                   children: [
                     Icon(
                       AppIcons.language,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 8),
                     const Text('हिंदी'),
@@ -86,7 +86,7 @@ class LanguageSelectorButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -107,7 +107,7 @@ class LanguageSelectorButton extends StatelessWidget {
                   children: [
                     Icon(
                       AppIcons.language,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 12),
                     const Text('English'),
@@ -120,7 +120,7 @@ class LanguageSelectorButton extends StatelessWidget {
                   children: [
                     Icon(
                       AppIcons.language,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 12),
                     const Text('हिंदी'),
@@ -135,7 +135,7 @@ class LanguageSelectorButton extends StatelessWidget {
                 children: [
                   Icon(
                     AppIcons.language,
-                    color: AppColors.deepAquiferBlue,
+                    color: AppColors.primary,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -144,7 +144,7 @@ class LanguageSelectorButton extends StatelessWidget {
                         ? 'English'
                         : 'हिंदी',
                     style: TextStyle(
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -152,7 +152,7 @@ class LanguageSelectorButton extends StatelessWidget {
                   const SizedBox(width: 4),
                   Icon(
                     PhosphorIconsDuotone.caretDown,
-                    color: AppColors.deepAquiferBlue,
+                    color: AppColors.primary,
                     size: 16,
                   ),
                 ],
@@ -187,7 +187,7 @@ class LanguageSelectorDialog extends StatelessWidget {
                   children: [
                     Icon(
                       AppIcons.language,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                       size: 28,
                     ),
                     const SizedBox(width: 12),
@@ -242,10 +242,10 @@ class LanguageSelectorDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.deepAquiferBlue.withOpacity(0.1) : Colors.grey[100],
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.deepAquiferBlue : Colors.transparent,
+            color: isSelected ? AppColors.primary : Colors.transparent,
             width: 2,
           ),
         ),
@@ -256,7 +256,7 @@ class LanguageSelectorDialog extends StatelessWidget {
               children: [
                 Icon(
                   AppIcons.language,
-                  color: isSelected ? AppColors.deepAquiferBlue : AppColors.mediumGrey,
+                  color: isSelected ? AppColors.primary : AppColors.mediumGrey,
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -264,7 +264,7 @@ class LanguageSelectorDialog extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? AppColors.deepAquiferBlue : Colors.black,
+                    color: isSelected ? AppColors.primary : Colors.black,
                   ),
                 ),
               ],
@@ -272,7 +272,7 @@ class LanguageSelectorDialog extends StatelessWidget {
             if (isSelected)
               Icon(
                 AppIcons.checkmark,
-                color: AppColors.deepAquiferBlue,
+                color: AppColors.primary,
               ),
           ],
         ),

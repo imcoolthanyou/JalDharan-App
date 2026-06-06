@@ -227,7 +227,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
           boxShadow: _isExpanded
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -250,18 +250,11 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
         width: 72,
         height: 72,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.deepAquiferBlue,
-              AppColors.deepAquiferBlue.withOpacity(0.85),
-            ],
-          ),
+          color: AppColors.primary,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.deepAquiferBlue.withOpacity(0.4),
+              color: AppColors.primary.withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -300,30 +293,10 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.deepAquiferBlue,
-                  AppColors.deepAquiferBlue.withOpacity(0.8),
-                ],
-              ),
+              color: AppColors.primary,
             ),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +312,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                       Text(
                         AppLocalizations.of(context)!.get('jal_shayak_help'),
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
                         ),
@@ -358,7 +331,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                     _isMuted
                         ? Icons.volume_off_rounded
                         : Icons.volume_up_rounded,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     size: 20,
                   ),
                 ),
@@ -376,7 +349,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                   },
                   child: Icon(
                     Icons.close,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     size: 20,
                   ),
                 ),
@@ -387,7 +360,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
           // Messages Area
           Expanded(
             child: Container(
-              color: const Color(0xFFF8FAFC),
+              color: AppColors.lightGrey,
               child: _messages.isEmpty
                   ? Center(
                       child: Text(
@@ -411,7 +384,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: AppColors.deepAquiferBlue,
+                                    color: AppColors.primary,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const SizedBox(
@@ -443,8 +416,8 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                             ),
                             decoration: BoxDecoration(
                               color: message.isUser
-                                  ? AppColors.deepAquiferBlue
-                                  : const Color(0xFFE8F4F8),
+                                  ? AppColors.primary
+                                  : AppColors.lightGrey,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -514,8 +487,8 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                     ),
                     decoration: BoxDecoration(
                       color: _sttLocale == 'hi-IN'
-                          ? AppColors.warningOrange
-                          : AppColors.deepAquiferBlue,
+                          ? AppColors.warning
+                          : AppColors.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -540,7 +513,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                       color: _isListening
                           ? Colors
                                 .red // Turns red while recording
-                          : AppColors.fieldGreen,
+                          : AppColors.primary,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -557,7 +530,7 @@ class _JalShayakOverlayState extends State<JalShayakOverlay> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

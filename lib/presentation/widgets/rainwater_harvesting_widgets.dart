@@ -116,7 +116,7 @@ class SourceToggleButton extends StatelessWidget {
             color: isSelected ? Colors.white : const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(12),
             border: isSelected
-                ? Border.all(color: AppColors.fieldGreen, width: 1)
+                ? Border.all(color: AppColors.primary, width: 1)
                 : null,
           ),
           child: Row(
@@ -125,13 +125,13 @@ class SourceToggleButton extends StatelessWidget {
               if (type == 'roof')
                 Icon(
                   Icons.home,
-                  color: isSelected ? AppColors.fieldGreen : AppColors.mediumGrey,
+                  color: isSelected ? AppColors.primary : AppColors.mediumGrey,
                   size: 20,
                 )
               else
                 Icon(
                   Icons.terrain,
-                  color: isSelected ? AppColors.fieldGreen : AppColors.mediumGrey,
+                  color: isSelected ? AppColors.primary : AppColors.mediumGrey,
                   size: 20,
                 ),
               const SizedBox(width: 8),
@@ -140,7 +140,7 @@ class SourceToggleButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? AppColors.fieldGreen : AppColors.mediumGrey,
+                  color: isSelected ? AppColors.primary : AppColors.mediumGrey,
                 ),
               ),
             ],
@@ -190,7 +190,7 @@ class SoilTypeCard extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: isSelected
-                    ? Border.all(color: AppColors.fieldGreen, width: 3)
+                    ? Border.all(color: AppColors.primary, width: 3)
                     : Border.all(color: Colors.transparent, width: 3),
               ),
               child: Stack(
@@ -209,7 +209,7 @@ class SoilTypeCard extends StatelessWidget {
                         width: 28,
                         height: 28,
                         decoration: BoxDecoration(
-                          color: AppColors.fieldGreen,
+                          color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -263,7 +263,7 @@ class _CatchmentAreaInputState extends State<CatchmentAreaInput> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Opening area calculator...'),
-          backgroundColor: AppColors.fieldGreen,
+          backgroundColor: AppColors.primary,
         ),
       );
     }
@@ -296,7 +296,7 @@ class _CatchmentAreaInputState extends State<CatchmentAreaInput> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.fieldGreen,
+                  color: AppColors.primary,
                 ),
               ),
             ),
@@ -305,10 +305,10 @@ class _CatchmentAreaInputState extends State<CatchmentAreaInput> {
         const SizedBox(height: 16),
         SliderTheme(
           data: SliderThemeData(
-            activeTrackColor: AppColors.fieldGreen,
+            activeTrackColor: AppColors.darkGrey,
             inactiveTrackColor: const Color(0xFFE0E0E0),
-            thumbColor: AppColors.fieldGreen,
-            overlayColor: AppColors.fieldGreen.withOpacity(0.2),
+            thumbColor: AppColors.primary,
+            overlayColor: AppColors.primary.withOpacity(0.2),
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
             trackHeight: 8,
           ),
@@ -395,7 +395,7 @@ class InfoCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.fieldGreen,
+              color: AppColors.primary,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -456,7 +456,7 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.fieldGreen,
+          backgroundColor: AppColors.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

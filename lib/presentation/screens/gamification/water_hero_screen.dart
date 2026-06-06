@@ -95,7 +95,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
               .get('task_completed_points')
               .replaceAll('{points}', '${task.points}'),
         ),
-        backgroundColor: AppColors.fieldGreen,
+        backgroundColor: AppColors.lightGrey,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -211,14 +211,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.deepAquiferBlue,
-                          AppColors.tealStart
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.vertical(
                           top: Radius.circular(20)),
                     ),
@@ -315,7 +308,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                         ];
                         return Container(
                           color: isMe
-                              ? AppColors.deepAquiferBlue.withOpacity(0.06)
+                              ? AppColors.primary.withOpacity(0.06)
                               : null,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -337,7 +330,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: isMe
-                                        ? AppColors.deepAquiferBlue
+                                        ? AppColors.primary
                                         : AppColors.mediumGrey,
                                   ),
                                 ),
@@ -348,8 +341,8 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                                 height: 30,
                                 decoration: BoxDecoration(
                                   color: isMe
-                                      ? AppColors.deepAquiferBlue
-                                      : AppColors.deepAquiferBlue.withOpacity(
+                                      ? AppColors.primary
+                                      : AppColors.primary.withOpacity(
                                       0.1),
                                   shape: BoxShape.circle,
                                 ),
@@ -361,7 +354,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                                       fontWeight: FontWeight.w700,
                                       color: isMe
                                           ? Colors.white
-                                          : AppColors.deepAquiferBlue,
+                                          : AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -376,7 +369,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                                         ? FontWeight.w800
                                         : FontWeight.w600,
                                     color: isMe
-                                        ? AppColors.deepAquiferBlue
+                                        ? AppColors.primary
                                         : AppColors.darkGrey,
                                   ),
                                 ),
@@ -387,7 +380,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: isMe
-                                      ? AppColors.deepAquiferBlue
+                                      ? AppColors.primary
                                       : AppColors.darkGrey,
                                 ),
                               ),
@@ -398,8 +391,8 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                                     : Icons.arrow_downward_rounded,
                                 size: 16,
                                 color: isUp
-                                    ? AppColors.fieldGreen
-                                    : AppColors.criticalRed,
+                                    ? AppColors.lightGrey
+                                    : AppColors.error,
                               ),
                             ],
                           ),
@@ -485,7 +478,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                   children: [
                     const Icon(
                       Icons.assignment_rounded,
-                      color: AppColors.deepAquiferBlue,
+                      color: AppColors.primary,
                       size: 24,
                     ),
                     const SizedBox(width: 10),
@@ -532,7 +525,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                       children: [
                         const Icon(
                           Icons.bar_chart_rounded,
-                          color: AppColors.warningOrange,
+                          color: AppColors.warning,
                           size: 24,
                         ),
                         const SizedBox(width: 10),
@@ -553,7 +546,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.deepAquiferBlue,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -592,11 +585,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
   Widget _buildHeroCard(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
-        ),
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.all(20),
@@ -704,9 +693,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.criticalRed.withOpacity(0.1),
+        color: AppColors.error.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.criticalRed.withOpacity(0.2)),
+        border: Border.all(color: AppColors.error.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -715,7 +704,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
             children: [
               Icon(
                 Icons.warning_rounded,
-                color: AppColors.criticalRed,
+                color: AppColors.error,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -724,7 +713,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.criticalRed,
+                  color: AppColors.error,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -787,12 +776,12 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 color: AppColors.lightGrey,
                 child: Stack(
                   children: [
-                    Container(color: AppColors.fieldGreen.withOpacity(0.2)),
+                    Container(color: AppColors.lightGrey.withOpacity(0.2)),
                     Center(
                       child: Icon(
                         Icons.image_rounded,
                         size: 48,
-                        color: AppColors.fieldGreen.withOpacity(0.5),
+                        color: AppColors.lightGrey.withOpacity(0.5),
                       ),
                     ),
                     Positioned(
@@ -804,7 +793,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.deepAquiferBlue,
+                          color: AppColors.primary,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -892,7 +881,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                                 onPressed: () =>
                                     _handleTaskAcceptance(task, true),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.deepAquiferBlue,
+                                  backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 10,
@@ -921,7 +910,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.fieldGreen.withOpacity(0.1),
+                        color: AppColors.lightGrey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -929,7 +918,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                         children: [
                           const Icon(
                             Icons.check_circle_rounded,
-                            color: AppColors.fieldGreen,
+                            color: AppColors.lightGrey,
                             size: 18,
                           ),
                           const SizedBox(width: 6),
@@ -938,7 +927,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.fieldGreen,
+                              color: AppColors.lightGrey,
                             ),
                           ),
                         ],
@@ -961,12 +950,12 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.deepAquiferBlue.withOpacity(0.3),
+            color: AppColors.primary.withOpacity(0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.deepAquiferBlue.withOpacity(0.1),
+              color: AppColors.primary.withOpacity(0.1),
               blurRadius: 12,
               offset: const Offset(0, 2),
             ),
@@ -979,7 +968,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.deepAquiferBlue,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -998,9 +987,9 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.deepAquiferBlue.withOpacity(0.1),
+                color: AppColors.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.deepAquiferBlue, width: 2),
+                border: Border.all(color: AppColors.primary, width: 2),
               ),
               child: Center(
                 child: Text(
@@ -1008,7 +997,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.deepAquiferBlue,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -1031,7 +1020,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.fieldGreen,
+                      color: AppColors.lightGrey,
                     ),
                   ),
                 ],
@@ -1042,7 +1031,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: AppColors.deepAquiferBlue,
+                color: AppColors.primary,
               ),
             ),
           ],

@@ -3,13 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';
 
-import '../../../core/models/analytics_data.dart';
 import '../../../core/models/groundwater_data.dart';
 import '../../../core/services/dashboard_api_service.dart';
 import '../../../core/services/socket_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../widgets/custom_gradient_appbar.dart';
 import 'dart:developer' as developer;
 
 class AnalyticsScreen extends StatefulWidget {
@@ -95,11 +93,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     super.dispose();
   }
 
-  // Helper colors based on the image
-  final Color _primaryPurple = const Color(0xFF6A5ACD);
-  final Color _lightPurple = const Color(0xFFB0A4E5);
-  final Color _greenColor = const Color(0xFF5BD166);
-  final Color _bgSoftPurple = const Color(0xFFF9F7FF);
+  // Helper colors (B&W palette)
+  final Color _primaryPurple = AppColors.primary;
+  final Color _lightPurple = AppColors.mediumGrey;
+  final Color _greenColor = AppColors.primary;
+  final Color _bgSoftPurple = AppColors.lightGrey;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +107,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         title: Text(
           AppLocalizations.of(context)!.get('prediction'),
           style: const TextStyle(
-            color: Color(0xFF1E1E2D),
+            color: AppColors.primary,
             fontWeight: FontWeight.w800,
             fontSize: 20,
           ),
@@ -119,7 +117,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Color(0xFF1E1E2D)),
+            icon: const Icon(Icons.notifications_outlined, color: AppColors.primary),
             onPressed: () {},
           ),
         ],
@@ -151,7 +149,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _primaryPurple.withOpacity(0.08),
+            color: _primaryPurple.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -174,7 +172,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _primaryPurple.withOpacity(0.1),
+                  color: _primaryPurple.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -260,7 +258,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           drawVerticalLine: false,
           horizontalInterval: 5,
           getDrawingHorizontalLine: (value) {
-            return FlLine(color: Colors.grey.withOpacity(0.1), strokeWidth: 1);
+            return FlLine(color: Colors.grey.withValues(alpha: 0.1), strokeWidth: 1);
           },
         ),
         titlesData: FlTitlesData(
@@ -363,7 +361,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _primaryPurple.withOpacity(0.06),
+            color: _primaryPurple.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -384,18 +382,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 children: [
                   Text(
                     _currentData.currentDepth.toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1E1E2D)),
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.primary),
                   ),
                   const SizedBox(width: 4),
-                  const Text(
+                  Text(
                     'm',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1E1E2D)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary),
                   ),
                   const SizedBox(width: 16),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _greenColor.withOpacity(0.15),
+                      color: _greenColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -426,7 +424,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _primaryPurple.withOpacity(0.06),
+            color: _primaryPurple.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -451,16 +449,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
+                        Text(
                           '+4.0',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1E1E2D)),
+                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.primary),
                         ),
                         const SizedBox(width: 4),
                         const Padding(
                           padding: EdgeInsets.only(bottom: 4.0),
                           child: Text(
                             'm',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1E1E2D)),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary),
                           ),
                         ),
                       ],
@@ -481,7 +479,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: _greenColor.withOpacity(0.08),
+                  color: _greenColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -519,7 +517,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _primaryPurple.withOpacity(0.06),
+            color: _primaryPurple.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -541,9 +539,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '06:00 AM - 08:00 AM',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1E1E2D)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primary),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -558,13 +556,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: _primaryPurple.withOpacity(0.1),
+                  color: _primaryPurple.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(Icons.water_drop, color: _lightPurple.withOpacity(0.5), size: 50),
+                    Icon(Icons.water_drop, color: _lightPurple.withValues(alpha: 0.5), size: 50),
                     Icon(Icons.access_time, color: _primaryPurple, size: 24),
                   ],
                 ),
@@ -582,14 +580,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       height: 64,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [color.withOpacity(0.1), color.withOpacity(0.2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: color.withValues(alpha: 0.15),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             blurRadius: 15,
             spreadRadius: -5,
             offset: const Offset(0, 5),

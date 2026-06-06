@@ -91,7 +91,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         title: 'Know Your Water',
         body:
             'Get real-time data from your borewell and groundwater with our smart sensors. Monitor depth, flow rate, TDS, pH and more.',
-        image: _buildImage(Icons.water_drop_rounded, AppColors.deepAquiferBlue),
+        image: _buildImage(Icons.water_drop_rounded, AppColors.primary),
         decoration: _pageDecoration,
       ),
       // Page 2
@@ -99,7 +99,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         title: 'Harvest Rainwater',
         body:
             'Discover how much rainwater you can collect and save. Our AI recommends the best recharge structures for your location.',
-        image: _buildImage(Icons.cloud_rounded, AppColors.tealStart),
+        image: _buildImage(Icons.cloud_rounded, AppColors.primary),
         decoration: _pageDecoration,
       ),
       // Page 3 — House photo (optional)
@@ -107,7 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         title: 'Your Home, Your Water',
         body:
             'Add a photo of your house to help us personalise your water management experience. This is optional — you can skip it.',
-        image: _buildImage(Icons.home_rounded, AppColors.deepAquiferBlue),
+        image: _buildImage(Icons.home_rounded, AppColors.primary),
         decoration: _pageDecoration,
         footer: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -118,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       PageViewModel(
         title: 'Connect Your Device',
         body: 'Follow the steps below to link your JalDharan sensor.',
-        image: _buildImage(Icons.wifi_rounded, AppColors.fieldGreen),
+        image: _buildImage(Icons.wifi_rounded, AppColors.primary),
         decoration: _pageDecoration,
         footer: DeviceSetupPage(onSetupComplete: _onDeviceSetupComplete),
       ),
@@ -134,7 +134,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               : 'Your sensor wasn\'t detected yet. You can link it later from Settings once it\'s online.',
           image: _buildImage(
             _deviceLinked ? Icons.check_circle_rounded : Icons.sensors_rounded,
-            _deviceLinked ? AppColors.fieldGreen : AppColors.warningOrange,
+            _deviceLinked ? AppColors.primary : AppColors.warning,
           ),
           decoration: _pageDecoration,
           footer: Padding(
@@ -144,7 +144,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 if (_deviceLinked)
                   const Icon(
                     Icons.check_circle_rounded,
-                    color: AppColors.fieldGreen,
+                    color: AppColors.primary,
                     size: 56,
                   ),
                 const SizedBox(height: 12),
@@ -154,8 +154,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: _completeOnboarding,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _deviceLinked
-                          ? AppColors.fieldGreen
-                          : AppColors.deepAquiferBlue,
+                          ? AppColors.primary
+                          : AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -200,12 +200,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       next: const Icon(
         Icons.arrow_forward_rounded,
-        color: AppColors.deepAquiferBlue,
+        color: AppColors.primary,
       ),
       done: const Text(
         'Done',
         style: TextStyle(
-          color: AppColors.deepAquiferBlue,
+          color: AppColors.primary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -215,7 +215,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         activeShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
         ),
-        activeColor: AppColors.deepAquiferBlue,
+        activeColor: AppColors.primary,
         color: AppColors.lightGrey,
       ),
     );
@@ -227,7 +227,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         width: 220,
         height: 220,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 100, color: color),
@@ -263,8 +263,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   icon: const Icon(Icons.camera_alt_rounded, size: 18),
                   label: const Text('Camera'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.deepAquiferBlue,
-                    side: const BorderSide(color: AppColors.deepAquiferBlue),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -279,8 +279,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   icon: const Icon(Icons.photo_library_rounded, size: 18),
                   label: const Text('Gallery'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.deepAquiferBlue,
-                    side: const BorderSide(color: AppColors.deepAquiferBlue),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

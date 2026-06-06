@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
-import '../../widgets/custom_text_field.dart';
-import '../../widgets/gradient_button.dart';
+import '../../widgets/custom_button.dart';
 import '../../widgets/wave_clipper.dart';
 import 'onboarding_screen.dart';
 
@@ -158,14 +157,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        CustomTextField(
-                          label: 'Email Address',
-                          hintText: 'you@example.com',
+                        TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          prefixIcon: const Icon(
-                            Icons.email_outlined,
-                            color: AppColors.mediumGrey,
+                          decoration: InputDecoration(
+                            labelText: 'Email Address',
+                            hintText: 'you@example.com',
+                            prefixIcon: const Icon(
+                              Icons.email_outlined,
+                              color: AppColors.mediumGrey,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -180,14 +184,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        CustomTextField(
-                          label: 'Password',
-                          hintText: 'Enter your password',
+                        TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          prefixIcon: const Icon(
-                            Icons.lock_outlined,
-                            color: AppColors.mediumGrey,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            hintText: 'Enter your password',
+                            prefixIcon: const Icon(
+                              Icons.lock_outlined,
+                              color: AppColors.mediumGrey,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -215,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _rememberMe = value ?? false;
                               });
                             },
-                            activeColor: AppColors.tealStart,
+                            activeColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -230,10 +239,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           // Handle forgot password
                         },
-                        child: const Text(
+                        child: Text(
                           'Forgot password?',
                           style: TextStyle(
-                            color: AppColors.deepAquiferBlue,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
                           ),
@@ -242,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  GradientButton(
+                  CustomButton(
                     text: 'Log In',
                     isLoading: _isLoading,
                     onPressed: _handleLogin,
@@ -300,10 +309,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           Navigator.of(context).pushNamed('/signup');
                         },
-                        child: const Text(
+                        child: Text(
                           'Sign Up',
                           style: TextStyle(
-                            color: AppColors.deepAquiferBlue,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -326,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Container(
           width: double.infinity,
           height: 320,
-          decoration: const BoxDecoration(gradient: AppColors.aquaFlowGradient),
+          decoration: const BoxDecoration(color: AppColors.primary),
         ),
         // Wavy divider at the bottom
         Positioned(
@@ -353,7 +362,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // App name with better styling
                 ShaderMask(
                   shaderCallback: (bounds) => const LinearGradient(
-                    colors: [AppColors.white, AppColors.tealEnd],
+                    colors: [AppColors.white, AppColors.white],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ).createShader(bounds),

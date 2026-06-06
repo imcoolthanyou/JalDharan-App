@@ -211,10 +211,10 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.criticalRed.withOpacity(0.08),
+                      color: AppColors.error.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: AppColors.criticalRed.withOpacity(0.3),
+                        color: AppColors.error.withOpacity(0.3),
                       ),
                     ),
                     child: Row(
@@ -222,7 +222,7 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                       children: [
                         const Icon(
                           Icons.gpp_bad_rounded,
-                          color: AppColors.criticalRed,
+                          color: AppColors.error,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -234,7 +234,7 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.criticalRed,
+                              color: AppColors.error,
                               height: 1.4,
                             ),
                           ),
@@ -255,9 +255,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: AppColors.deepAquiferBlue,
+                            foregroundColor: AppColors.primary,
                             side: const BorderSide(
-                              color: AppColors.deepAquiferBlue,
+                              color: AppColors.primary,
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -276,9 +276,9 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: AppColors.deepAquiferBlue,
+                            foregroundColor: AppColors.primary,
                             side: const BorderSide(
-                              color: AppColors.deepAquiferBlue,
+                              color: AppColors.primary,
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -296,7 +296,7 @@ class _ProofUploadDialogState extends State<ProofUploadDialog> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _submitProof,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.deepAquiferBlue,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -349,9 +349,9 @@ class VerificationResultDialog extends StatelessWidget {
 
   Color _getResultColor() {
     if (result.isValid) {
-      return AppColors.fieldGreen;
+      return AppColors.lightGrey;
     }
-    return AppColors.criticalRed;
+    return AppColors.error;
   }
 
   IconData _getResultIcon() {
@@ -486,8 +486,8 @@ class VerificationResultDialog extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: result.isRealImage
-                                  ? AppColors.fieldGreen.withOpacity(0.1)
-                                  : AppColors.criticalRed.withOpacity(0.1),
+                                  ? AppColors.lightGrey.withOpacity(0.1)
+                                  : AppColors.error.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -498,8 +498,8 @@ class VerificationResultDialog extends StatelessWidget {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: result.isRealImage
-                                    ? AppColors.fieldGreen
-                                    : AppColors.criticalRed,
+                                    ? AppColors.lightGrey
+                                    : AppColors.error,
                               ),
                             ),
                           ),
@@ -524,8 +524,8 @@ class VerificationResultDialog extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: result.taskCompleted
-                                  ? AppColors.fieldGreen.withOpacity(0.1)
-                                  : AppColors.criticalRed.withOpacity(0.1),
+                                  ? AppColors.lightGrey.withOpacity(0.1)
+                                  : AppColors.error.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -536,8 +536,8 @@ class VerificationResultDialog extends StatelessWidget {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: result.taskCompleted
-                                    ? AppColors.fieldGreen
-                                    : AppColors.criticalRed,
+                                    ? AppColors.lightGrey
+                                    : AppColors.error,
                               ),
                             ),
                           ),
@@ -560,7 +560,7 @@ class VerificationResultDialog extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.deepAquiferBlue,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -596,17 +596,17 @@ class VerificationResultDialog extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.fieldGreen.withOpacity(0.1),
+                      color: AppColors.lightGrey.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.fieldGreen.withOpacity(0.3),
+                        color: AppColors.lightGrey.withOpacity(0.3),
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           Icons.star_rounded,
-                          color: AppColors.fieldGreen,
+                          color: AppColors.lightGrey,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -618,7 +618,7 @@ class VerificationResultDialog extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.fieldGreen,
+                              color: AppColors.lightGrey,
                             ),
                           ),
                         ),
@@ -629,17 +629,17 @@ class VerificationResultDialog extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.criticalRed.withOpacity(0.1),
+                      color: AppColors.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.criticalRed.withOpacity(0.3),
+                        color: AppColors.error.withOpacity(0.3),
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           Icons.info_rounded,
-                          color: AppColors.criticalRed,
+                          color: AppColors.error,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -649,7 +649,7 @@ class VerificationResultDialog extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.criticalRed,
+                              color: AppColors.error,
                             ),
                           ),
                         ),

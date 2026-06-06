@@ -59,7 +59,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.tealStart,
+                            color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -67,7 +67,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                           _isExpanded
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_right,
-                          color: AppColors.tealStart,
+                          color: AppColors.primary,
                           size: 20,
                         ),
                       ],
@@ -85,8 +85,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                   children: [
                     _buildQuickMetricCard(
                       icon: Icons.water,
-                      iconColor: AppColors.fieldGreen,
-                      iconBg: AppColors.fieldGreen.withValues(alpha: 0.1),
+                      iconColor: AppColors.primary,
+                      iconBg: AppColors.primary.withValues(alpha: 0.1),
                       label: AppLocalizations.of(context)?.get('water_depth') ?? 'Water Depth',
                       value: widget.data.currentDepth.toStringAsFixed(1),
                       unit: 'm',
@@ -97,8 +97,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                     const SizedBox(width: 12),
                     _buildQuickMetricCard(
                       icon: Icons.water_drop,
-                      iconColor: AppColors.tealEnd,
-                      iconBg: AppColors.tealEnd.withValues(alpha: 0.1),
+                      iconColor: AppColors.darkGrey,
+                      iconBg: AppColors.darkGrey.withValues(alpha: 0.1),
                       label: AppLocalizations.of(context)?.get('flow_rate') ?? 'Flow Rate',
                       value: widget.data.flowRate.toStringAsFixed(1),
                       unit: 'L/min',
@@ -109,8 +109,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                     const SizedBox(width: 12),
                     _buildQuickMetricCard(
                       icon: Icons.science,
-                      iconColor: AppColors.warningOrange,
-                      iconBg: AppColors.warningOrange.withValues(alpha: 0.1),
+                      iconColor: AppColors.warning,
+                      iconBg: AppColors.warning.withValues(alpha: 0.1),
                       label: AppLocalizations.of(context)?.get('tds_level') ?? 'TDS Level',
                       value: widget.data.tdsLevel.toStringAsFixed(0),
                       unit: 'ppm',
@@ -125,8 +125,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                         width: 24,
                         height: 24,
                       ),
-                      iconColor: AppColors.fieldGreen,
-                      iconBg: AppColors.fieldGreen.withValues(alpha: 0.1),
+                      iconColor: AppColors.primary,
+                      iconBg: AppColors.primary.withValues(alpha: 0.1),
                       label: AppLocalizations.of(context)?.get('ph_level') ?? 'pH Level',
                       value: widget.data.phLevel.toStringAsFixed(1),
                       unit: '',
@@ -233,7 +233,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
               Icon(
                 isIncrease ? Icons.arrow_upward : Icons.arrow_downward,
                 size: 14,
-                color: isIncrease ? AppColors.fieldGreen : AppColors.tealEnd,
+                color: isIncrease ? AppColors.primary : AppColors.darkGrey,
               ),
               const SizedBox(width: 4),
               Text(
@@ -241,7 +241,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isIncrease ? AppColors.fieldGreen : AppColors.tealEnd,
+                  color: isIncrease ? AppColors.primary : AppColors.darkGrey,
                 ),
               ),
             ],
@@ -285,8 +285,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
               children: [
                 _buildDetailMetricCard(
                   icon: Icons.flash_on,
-                  iconColor: AppColors.warningOrange,
-                  iconBg: AppColors.warningOrange.withValues(alpha: 0.1),
+                  iconColor: AppColors.warning,
+                  iconBg: AppColors.warning.withValues(alpha: 0.1),
                   label: AppLocalizations.of(context)?.get('voltage') ?? 'Voltage',
                   value: widget.data.voltage.toStringAsFixed(0),
                   unit: 'V',
@@ -294,8 +294,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                 const SizedBox(width: 12),
                 _buildDetailMetricCard(
                   icon: Icons.electric_bolt,
-                  iconColor: AppColors.criticalRed,
-                  iconBg: AppColors.criticalRed.withValues(alpha: 0.1),
+                  iconColor: AppColors.error,
+                  iconBg: AppColors.error.withValues(alpha: 0.1),
                   label: AppLocalizations.of(context)?.get('ampere') ?? 'Current',
                   value: widget.data.current.toStringAsFixed(1),
                   unit: 'A',
@@ -303,8 +303,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                 const SizedBox(width: 12),
                 _buildDetailMetricCard(
                   icon: Icons.power,
-                  iconColor: AppColors.fieldGreen,
-                  iconBg: AppColors.fieldGreen.withValues(alpha: 0.1),
+                  iconColor: AppColors.primary,
+                  iconBg: AppColors.primary.withValues(alpha: 0.1),
                   label: AppLocalizations.of(context)?.get('kilowatt') ?? 'Power',
                   value: widget.data.powerKw.toStringAsFixed(2),
                   unit: 'kW',
@@ -312,8 +312,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                 const SizedBox(width: 12),
                 _buildDetailMetricCard(
                   icon: Icons.access_time,
-                  iconColor: AppColors.tealEnd,
-                  iconBg: AppColors.tealEnd.withValues(alpha: 0.1),
+                  iconColor: AppColors.darkGrey,
+                  iconBg: AppColors.darkGrey.withValues(alpha: 0.1),
                   label: AppLocalizations.of(context)?.get('session') ?? 'Session',
                   value: widget.data.currentSession.toStringAsFixed(2),
                   unit: 'm³',
@@ -321,8 +321,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                 const SizedBox(width: 12),
                 _buildDetailMetricCard(
                   icon: Icons.water_damage,
-                  iconColor: AppColors.deepAquiferBlue,
-                  iconBg: AppColors.deepAquiferBlue.withValues(alpha: 0.1),
+                  iconColor: AppColors.primary,
+                  iconBg: AppColors.primary.withValues(alpha: 0.1),
                   label: AppLocalizations.of(context)?.get('extracted') ?? 'Extracted',
                   value: widget.data.estimatedExtraction.toStringAsFixed(1),
                   unit: 'm³',
@@ -330,8 +330,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                 const SizedBox(width: 12),
                 _buildDetailMetricCard(
                   icon: Icons.calendar_month,
-                  iconColor: AppColors.fieldGreen,
-                  iconBg: AppColors.fieldGreen.withValues(alpha: 0.1),
+                  iconColor: AppColors.primary,
+                  iconBg: AppColors.primary.withValues(alpha: 0.1),
                   label: AppLocalizations.of(context)?.get('lifetime') ?? 'Lifetime',
                   value: (widget.data.totalLifetimeExtractionL / 1000)
                       .toStringAsFixed(1),
@@ -362,7 +362,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                   child: const Icon(
                     Icons.refresh,
                     size: 20,
-                    color: AppColors.tealStart,
+                    color: AppColors.primary,
                   ),
                 ),
             ],
@@ -451,8 +451,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.fieldGreen.withValues(alpha: 0.15),
-            AppColors.tealStart.withValues(alpha: 0.15),
+            AppColors.primary.withValues(alpha: 0.15),
+            AppColors.primary.withValues(alpha: 0.15),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -468,7 +468,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.eco, color: AppColors.fieldGreen, size: 32),
+            child: const Icon(Icons.eco, color: AppColors.primary, size: 32),
           ),
           const SizedBox(width: 16),
 
@@ -482,7 +482,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.tealStart,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -520,13 +520,13 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
           // Wave icon with colored text instead of badge
           Column(
             children: [
-              const Icon(Icons.waves, color: AppColors.fieldGreen, size: 32),
+              const Icon(Icons.waves, color: AppColors.primary, size: 32),
               const SizedBox(height: 4),
               Row(
                 children: const [
                   Icon(
                     Icons.arrow_upward,
-                    color: AppColors.fieldGreen,
+                    color: AppColors.primary,
                     size: 16,
                   ),
                   SizedBox(width: 2),
@@ -535,7 +535,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.fieldGreen,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -546,7 +546,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.tealStart,
+                  color: AppColors.primary,
                 ),
               ),
             ],

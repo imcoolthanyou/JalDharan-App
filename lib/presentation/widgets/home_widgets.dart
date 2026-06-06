@@ -20,18 +20,14 @@ class HeaderWithWave extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color:AppColors.primary,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.deepAquiferBlue.withOpacity(0.3),
+            color: AppColors.mediumGrey.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -174,7 +170,7 @@ class CurrentDataCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.deepAquiferBlue,
+                          color: AppColors.primary,
                           height: 1,
                         ),
                       ),
@@ -222,7 +218,7 @@ class _WaterDepthPainter extends CustomPainter {
     // Foreground (filled) circle
     final sweepAngle = (percentage / 100) * 2 * 3.14159;
     final foregroundPaint = Paint()
-      ..color = AppColors.deepAquiferBlue
+      ..color = AppColors.primary
       ..style = PaintingStyle.stroke
       ..strokeWidth = 12
       ..strokeCap = StrokeCap.round;
@@ -260,7 +256,7 @@ class QualityScoreCard extends StatelessWidget {
       case 'FAIR':
         return const Color(0xFFFFC107);
       case 'POOR':
-        return AppColors.criticalRed;
+        return AppColors.error;
       default:
         return AppColors.mediumGrey;
     }
@@ -479,7 +475,7 @@ class WaterHealthAICard extends StatelessWidget {
                     const SizedBox(width: 10),
                     _chip(
                       '🦠 ${data.diseaseRisk} Disease Risk',
-                      AppColors.warningOrange,
+                      AppColors.warning
                     ),
                   ],
                 ),
@@ -539,10 +535,10 @@ class WaterHealthAICard extends StatelessWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.criticalRed.withOpacity(0.08),
+                          color: AppColors.error.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: AppColors.criticalRed.withOpacity(0.25),
+                            color: AppColors.error.withOpacity(0.25),
                           ),
                         ),
                         child: Text(
@@ -550,7 +546,7 @@ class WaterHealthAICard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.criticalRed,
+                            color: AppColors.error,
                           ),
                         ),
                       );

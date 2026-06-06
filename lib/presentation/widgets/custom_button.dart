@@ -31,11 +31,11 @@ class CustomButton extends StatelessWidget {
       width: width ?? double.infinity,
       height: height ?? 50,
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.deepAquiferBlue,
+        color: backgroundColor ?? AppColors.primary,
         borderRadius: borderRadius ?? BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-        color: (backgroundColor ?? AppColors.deepAquiferBlue)
+        color: (backgroundColor ?? AppColors.darkGrey)
             .withValues(alpha: 0.3),
             offset: const Offset(0, 4),
             blurRadius: 8,

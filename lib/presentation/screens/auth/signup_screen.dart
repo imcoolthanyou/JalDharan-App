@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
-import '../../widgets/custom_text_field.dart';
-import '../../widgets/gradient_button.dart';
+import '../../widgets/custom_button.dart';
 import '../../widgets/wave_clipper.dart';
 import 'onboarding_screen.dart';
 
@@ -157,13 +156,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        CustomTextField(
-                          label: 'Full Name',
-                          hintText: 'Enter your full name',
+                        TextFormField(
                           controller: _nameController,
-                          prefixIcon: const Icon(
-                            Icons.person_outlined,
-                            color: AppColors.mediumGrey,
+                          decoration: InputDecoration(
+                            labelText: 'Full Name',
+                            hintText: 'Enter your full name',
+                            prefixIcon: const Icon(
+                              Icons.person_outlined,
+                              color: AppColors.mediumGrey,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -176,14 +180,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        CustomTextField(
-                          label: 'Email Address',
-                          hintText: 'you@example.com',
+                        TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          prefixIcon: const Icon(
-                            Icons.email_outlined,
-                            color: AppColors.mediumGrey,
+                          decoration: InputDecoration(
+                            labelText: 'Email Address',
+                            hintText: 'you@example.com',
+                            prefixIcon: const Icon(
+                              Icons.email_outlined,
+                              color: AppColors.mediumGrey,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -198,14 +207,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        CustomTextField(
-                          label: 'Password',
-                          hintText: 'Create a strong password',
+                        TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          prefixIcon: const Icon(
-                            Icons.lock_outlined,
-                            color: AppColors.mediumGrey,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            hintText: 'Create a strong password',
+                            prefixIcon: const Icon(
+                              Icons.lock_outlined,
+                              color: AppColors.mediumGrey,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -227,14 +241,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        CustomTextField(
-                          label: 'Confirm Password',
-                          hintText: 'Re-enter your password',
+                        TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: true,
-                          prefixIcon: const Icon(
-                            Icons.lock_outlined,
-                            color: AppColors.mediumGrey,
+                          decoration: InputDecoration(
+                            labelText: 'Confirm Password',
+                            hintText: 'Re-enter your password',
+                            prefixIcon: const Icon(
+                              Icons.lock_outlined,
+                              color: AppColors.mediumGrey,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -260,7 +279,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             _agreeToTerms = value ?? false;
                           });
                         },
-                        activeColor: AppColors.tealStart,
+                        activeColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -276,7 +295,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 TextSpan(
                                   text: 'Terms of Service',
                                   style: const TextStyle(
-                                    color: AppColors.deepAquiferBlue,
+                                    color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -284,7 +303,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 TextSpan(
                                   text: 'Privacy Policy',
                                   style: const TextStyle(
-                                    color: AppColors.deepAquiferBlue,
+                                    color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -296,7 +315,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  GradientButton(
+                  CustomButton(
                     text: 'Create Account',
                     isLoading: _isLoading,
                     onPressed: _handleSignUp,
@@ -354,10 +373,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        child: const Text(
+                        child: Text(
                           'Log In',
                           style: TextStyle(
-                            color: AppColors.deepAquiferBlue,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -380,7 +399,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         Container(
           width: double.infinity,
           height: 280,
-          decoration: const BoxDecoration(gradient: AppColors.aquaFlowGradient),
+          decoration: const BoxDecoration(color: AppColors.primary),
         ),
         // Wavy divider at the bottom
         Positioned(
@@ -407,7 +426,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 // App name with better styling
                 ShaderMask(
                   shaderCallback: (bounds) => const LinearGradient(
-                    colors: [AppColors.white, AppColors.tealEnd],
+                    colors: [AppColors.white, AppColors.white],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ).createShader(bounds),

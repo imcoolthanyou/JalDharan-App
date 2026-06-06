@@ -172,7 +172,7 @@ class _StructureRecommendationScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(color: AppColors.deepAquiferBlue),
+          const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.get('analyzing_data'),
@@ -193,7 +193,7 @@ class _StructureRecommendationScreenState
             const Icon(
               Icons.error_outline,
               size: 64,
-              color: AppColors.warningOrange,
+              color: AppColors.warning,
             ),
             const SizedBox(height: 16),
             Text(
@@ -251,8 +251,8 @@ class _StructureRecommendationScreenState
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isSpeaking
-                    ? AppColors.warningOrange
-                    : AppColors.fieldGreen,
+                    ? AppColors.warning
+                    : AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -293,7 +293,7 @@ class _StructureRecommendationScreenState
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -327,7 +327,7 @@ class _StructureRecommendationScreenState
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.deepAquiferBlue,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -337,14 +337,14 @@ class _StructureRecommendationScreenState
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.tealStart.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.tealStart),
+                        border: Border.all(color: AppColors.primary),
                       ),
                       child: Text(
                         'Feasibility: ${rec.feasibility}',
                         style: const TextStyle(
-                          color: AppColors.tealStart,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -422,7 +422,7 @@ class _StructureRecommendationScreenState
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.fieldGreen,
+                        color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -430,7 +430,7 @@ class _StructureRecommendationScreenState
                       '(${savings.savingsPercentage}% of demand)',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: AppColors.fieldGreen,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -440,7 +440,7 @@ class _StructureRecommendationScreenState
               CircularProgressIndicator(
                 value: savings.savingsPercentage / 100,
                 backgroundColor: Colors.grey[200],
-                color: AppColors.fieldGreen,
+                color: AppColors.primary,
               ),
             ],
           ),
@@ -493,7 +493,7 @@ class _StructureRecommendationScreenState
             image: NetworkImage(_placeholderArImage),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.4),
+              Colors.black.withValues(alpha: 0.4),
               BlendMode.darken,
             ),
           ),
@@ -552,7 +552,7 @@ class _StructureRecommendationScreenState
   Widget _buildStatItem(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.deepAquiferBlue, size: 20),
+        Icon(icon, color: AppColors.primary, size: 20),
         const SizedBox(height: 8),
         Text(
           value,

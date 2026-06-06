@@ -285,7 +285,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FE),
+                  color: AppColors.lightGrey,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -301,7 +301,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF6D5DF6),
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -333,7 +333,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                       SizedBox(width: 4),
                       Icon(
                         Icons.waving_hand,
-                        color: Colors.amberAccent,
+                        color: AppColors.warning,
                         size: 16,
                       ),
                     ],
@@ -379,7 +379,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                     ),
                     child: const Icon(
                       Icons.notifications_none_rounded,
-                      color: Color(0xFF334155),
+                      color: AppColors.darkGrey,
                       size: 24,
                     ),
                   ),
@@ -391,7 +391,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                     width: 18,
                     height: 18,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFEF4444),
+                      color: AppColors.error,
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
@@ -424,14 +424,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.deepAquiferBlue.withValues(alpha: 0.1),
-                      AppColors.tealEnd.withValues(alpha: 0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: AppColors.lightGrey,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.08),
@@ -479,7 +472,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                           children: [
                             _buildMetricCard(
                               icon: Icons.water_drop,
-                              iconColor: AppColors.deepAquiferBlue,
+                              iconColor: AppColors.primary,
                               title: AppLocalizations.of(context)?.get('quality') ?? 'Quality',
                               value: groundwaterData.qualityScore
                                   .toStringAsFixed(0),
@@ -492,13 +485,13 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                             const SizedBox(width: 8),
                             _buildMetricCard(
                               icon: Icons.height,
-                              iconColor: AppColors.deepAquiferBlue,
+                              iconColor: AppColors.primary,
                               title: AppLocalizations.of(context)?.get('depth') ?? 'Depth',
                               value: groundwaterData.currentDepth
                                   .toStringAsFixed(1),
                               unit: ' m',
                               statusText: AppLocalizations.of(context)?.get('safe_range') ?? 'Safe Range',
-                              statusColor: AppColors.deepAquiferBlue,
+                              statusColor: AppColors.primary,
                             ),
                             const SizedBox(width: 8),
                             // Pump card: match sizing and styling of _buildMetricCard
@@ -507,11 +500,11 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                               height: 110,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
+                                    color: Colors.black.withValues(alpha: 0.08),
                                     blurRadius: 15,
                                     offset: const Offset(0, 8),
                                   ),
@@ -527,7 +520,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                                       Icon(
                                         Icons.pest_control,
                                         size: 15,
-                                        color: AppColors.deepAquiferBlue,
+                                        color: AppColors.primary,
                                       ),
                                       const SizedBox(width: 3),
                                       Expanded(
@@ -573,7 +566,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                                         Switch(
                                           value: ispumpOn,
                                           activeColor:
-                                              AppColors.deepAquiferBlue,
+                                              AppColors.primary,
                                           onChanged: _togglePump,
                                         ),
                                     ],
@@ -598,9 +591,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                   vertical: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(
-                    0xFFF4EFFF,
-                  ), // Soft purple background matching the image
+                  color: AppColors.lightGrey,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -629,7 +620,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                               const Icon(
                                 Icons.auto_awesome,
                                 size: 16,
-                                color: AppColors.tealStart,
+                                color: AppColors.primary,
                               ), // Sparkle icon
                               const SizedBox(width: 4),
                               Text(
@@ -637,7 +628,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.tealStart,
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ],
@@ -677,7 +668,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.tealStart,
+                        backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -715,17 +706,10 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.tealEnd.withValues(alpha: 0.2),
-                        AppColors.deepAquiferBlue.withValues(alpha: 0.1),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: AppColors.darkGrey.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppColors.tealEnd.withValues(alpha: 0.3),
+                      color: AppColors.darkGrey.withValues(alpha: 0.15),
                     ),
                   ),
                   child: Row(
@@ -733,7 +717,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.tealEnd.withValues(alpha: 0.2),
+                          color: AppColors.darkGrey.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: SvgPicture.asset(
@@ -768,7 +752,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                       ),
                       const Icon(
                         Icons.arrow_forward_ios,
-                        color: AppColors.tealEnd,
+                        color: AppColors.darkGrey,
                         size: 20,
                       ),
                     ],
@@ -786,17 +770,10 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.fieldGreen.withValues(alpha: 0.2),
-                        AppColors.deepAquiferBlue.withValues(alpha: 0.2),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppColors.fieldGreen.withValues(alpha: 0.3),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                     ),
                   ),
                   child: Row(
@@ -804,12 +781,12 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.fieldGreen.withValues(alpha: 0.2),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.school,
-                          color: AppColors.fieldGreen,
+                          color: AppColors.primary,
                           size: 28,
                         ),
                       ),
@@ -839,7 +816,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                       ),
                       const Icon(
                         Icons.arrow_forward_ios,
-                        color: AppColors.fieldGreen,
+                        color: AppColors.primary,
                         size: 20,
                       ),
                     ],
@@ -858,7 +835,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                         content: Text(
                           'Wait for data to load completely before generating report.',
                         ),
-                        backgroundColor: AppColors.warningOrange,
+                        backgroundColor: AppColors.warning,
                       ),
                     );
                     return;
@@ -903,7 +880,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Error generating report: $e'),
-                          backgroundColor: AppColors.criticalRed,
+                          backgroundColor: AppColors.error,
                         ),
                       );
                     }
@@ -913,12 +890,12 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   decoration: BoxDecoration(
-                    gradient: AppColors.aquaFlowGradient,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.deepAquiferBlue.withValues(
-                          alpha: 0.35,
+                        color: AppColors.primary.withValues(
+                          alpha: 0.25,
                         ),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
@@ -1019,13 +996,13 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   Color _getQualityColor(String qualityStatus) {
     switch (qualityStatus.toLowerCase()) {
       case 'excellent':
-        return AppColors.fieldGreen;
+        return AppColors.primary;
       case 'good':
-        return AppColors.deepAquiferBlue;
+        return AppColors.primary;
       case 'poor':
-        return AppColors.warningOrange;
+        return AppColors.warning;
       default:
-        return AppColors.criticalRed;
+        return AppColors.error;
     }
   }
 }
@@ -1043,13 +1020,11 @@ Widget _buildMetricCard({
     width: 110, // Fixed width for consistent horizontal scrolling layout
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white.withOpacity(
-        0.9,
-      ), // Slight transparency for the overlay effect
+      color: Colors.white.withValues(alpha: 0.9),
       borderRadius: BorderRadius.circular(20),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.08),
+          color: Colors.black.withValues(alpha: 0.08),
           blurRadius: 15,
           offset: const Offset(0, 8),
         ),
@@ -1103,7 +1078,7 @@ Widget _buildMetricCard({
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.15),
+            color: statusColor.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
