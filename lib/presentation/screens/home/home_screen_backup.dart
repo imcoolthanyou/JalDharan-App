@@ -196,19 +196,19 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
     try {
       final response = await http
           .post(
-            Uri.parse(ApiConfig.pumpControlEndpoint),
-            headers: {"Content-Type": "application/json"},
-            body: jsonEncode({"action": value ? "ON" : "OFF"}),
-          )
+        Uri.parse(ApiConfig.pumpControlEndpoint),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"action": value ? "ON" : "OFF"}),
+      )
           .timeout(
+        ApiConfig.requestTimeout,
+        onTimeout: () {
+          throw TimeoutException(
+            'Pump control request timed out',
             ApiConfig.requestTimeout,
-            onTimeout: () {
-              throw TimeoutException(
-                'Pump control request timed out',
-                ApiConfig.requestTimeout,
-              );
-            },
           );
+        },
+      );
 
       if (response.statusCode == 200) {
         setState(() {
@@ -566,7 +566,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                                         Switch(
                                           value: ispumpOn,
                                           activeColor:
-                                              AppColors.primary,
+                                          AppColors.primary,
                                           onChanged: _togglePump,
                                         ),
                                     ],
@@ -640,7 +640,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                               fontSize: 12,
                               color: Colors.black87,
                               height:
-                                  1.3, // Slight line height adjustment for readability
+                              1.3, // Slight line height adjustment for readability
                             ),
                           ),
                         ],
@@ -963,12 +963,12 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       context: context,
       isScrollControlled: true, // Allows us to set a custom height
       backgroundColor:
-          Colors.transparent, // Transparent so our custom rounded corners show
+      Colors.transparent, // Transparent so our custom rounded corners show
       builder: (BuildContext context) {
         // This container controls the size and shape of the popup
         return Container(
           height:
-              MediaQuery.of(context).size.height *
+          MediaQuery.of(context).size.height *
               0.6, // Sets it to 60% of the screen height
           decoration: const BoxDecoration(
             color: Colors.white,
