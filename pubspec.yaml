@@ -71,6 +71,7 @@ dependencies:
     sdk: flutter
   speech_to_text: ^7.3.0
   model_viewer_plus: 1.9.3
+  flutter_svg: ^2.0.17
   
   
 
@@ -100,6 +101,7 @@ flutter:
   assets:
     - assets/
     - assets/images/
+    - assets/icons/
     - assets/models/house_model.glb
     - assets/recharge_shaft_with_pit.glb
     - assets/recharge_Trench.glb

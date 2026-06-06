@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../jal_shayak/jal_shayak_screen.dart';
 import '../rainwater_harvesting/rainwater_harvesting_screen.dart';
@@ -609,10 +610,10 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                       'assets/water_smile.png', // Make sure to add your image to assets
                       width: 50,
                       height: 50,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.water_drop,
-                        size: 50,
-                        color: AppColors.deepAquiferBlue,
+                      errorBuilder: (context, error, stackTrace) => SvgPicture.asset(
+                        'assets/icons/jal_Shayak.svg',
+                        width: 50,
+                        height: 50,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -735,10 +736,10 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                           color: AppColors.tealEnd.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.water_drop,
-                          color: AppColors.tealEnd,
-                          size: 28,
+                        child: SvgPicture.asset(
+                          'assets/icons/rain__water.svg',
+                          width: 28,
+                          height: 28,
                         ),
                       ),
                       const SizedBox(width: 16),

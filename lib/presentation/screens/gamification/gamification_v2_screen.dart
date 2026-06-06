@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/models/gamification_data.dart';
 import 'widgets/proof_upload_dialog.dart';
 import 'widgets/task_acceptance_dialog.dart';
@@ -24,6 +26,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
   }
 
   void _onAcceptTask(DailyTask task) {
+    final l = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (_) => TaskAcceptanceDialog(
@@ -55,7 +58,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            '🎉 +${task.points} points earned! Keep it up!',
+                            l.get('points_earned_snackbar').replaceAll('{points}', '${task.points}'),
                           ),
                           backgroundColor: const Color(0xFF6D5DF6),
                           duration: const Duration(seconds: 2),
@@ -74,6 +77,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0FA),
       body: SafeArea(
@@ -90,9 +94,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Gamification",
-                          style: TextStyle(
+                        Text(
+                          l.get('gamification'),
+                          style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF0F172A),
@@ -100,7 +104,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Earn points, complete tasks\nand climb the leaderboard!",
+                          l.get('gamification_subtitle'),
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.grey,
@@ -228,16 +232,16 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
+                              children: [
+                                const Icon(
                                   Icons.star_rounded,
                                   color: Colors.amber,
                                   size: 16,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  "Rank #12",
-                                  style: TextStyle(
+                                  l.get('rank_hash').replaceAll('{rank}', '12'),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 13,
@@ -269,9 +273,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                               ),
                             ],
                           ),
-                          const Text(
-                            "Total Water Points",
-                            style: TextStyle(
+                          Text(
+                            l.get('total_water_points'),
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
                             ),
@@ -281,7 +285,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "Level ${_userProfile.level}",
+                                '${l.get('level_label')} ${_userProfile.level}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
@@ -289,7 +293,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 ),
                               ),
                               Text(
-                                "${_userProfile.levelProgress}% to Level ${_userProfile.level + 1}",
+                                l.get('level_progress')
+                                    .replaceAll('{progress}', '${_userProfile.levelProgress}')
+                                    .replaceAll('{next}', '${_userProfile.level + 1}'),
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
@@ -313,7 +319,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            "${_userProfile.levelProgress * 50} / 5,000 XP",
+                            l.get('xp_format').replaceAll('{current}', '${_userProfile.levelProgress * 50}'),
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 11,
@@ -348,9 +354,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
-                        "Daily Assignment",
-                        style: TextStyle(
+                      Text(
+                        l.get('daily_assignment'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF0F172A),
@@ -361,15 +367,15 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                   TextButton(
                     onPressed: () => _showAllTasksDialog(),
                     child: Row(
-                      children: const [
+                      children: [
                         Text(
-                          "View All",
-                          style: TextStyle(
+                          l.get('view_all'),
+                          style: const TextStyle(
                             color: Color(0xFF6D5DF6),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.chevron_right,
                           color: Color(0xFF6D5DF6),
                           size: 18,
@@ -393,13 +399,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                   separatorBuilder: (_, __) => const SizedBox(width: 14),
                   itemBuilder: (context, index) {
                     final task = _dailyTasks[index];
-                    final icons = [
-                      Icons.speed_rounded,
-                      Icons.water_rounded,
-                      Icons.science_rounded,
-                      Icons.plumbing_rounded,
-                      Icons.edit_note_rounded,
-                    ];
                     final iconBgs = [
                       const Color(0xFFDDD6FE),
                       const Color(0xFFCCFBF1),
@@ -414,12 +413,19 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                       const Color(0xFFE11D48),
                       const Color(0xFF0284C7),
                     ];
+                    final iconWidgets = [
+                      SvgPicture.asset('assets/icons/pump_valves.svg', width: 26, height: 26),
+                      Icon(Icons.water_rounded, color: iconColors[1], size: 26),
+                      Icon(Icons.science_rounded, color: iconColors[2], size: 26),
+                      Icon(Icons.plumbing_rounded, color: iconColors[3], size: 26),
+                      Icon(Icons.edit_note_rounded, color: iconColors[4], size: 26),
+                    ];
                     return SizedBox(
                       width: 160,
                       child: _TaskCard(
-                        pts: "+${task.points} PTS",
+                        pts: "+${task.points} ${l.get('pts')}",
                         onAccept: () => _onAcceptTask(task),
-                        icon: icons[index % icons.length],
+                        iconWidget: iconWidgets[index % iconWidgets.length],
                         iconBg: iconBgs[index % iconBgs.length],
                         iconColor: iconColors[index % iconColors.length],
                         cardBg: Colors.white,
@@ -452,9 +458,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
-                        "Your Rank",
-                        style: TextStyle(
+                      Text(
+                        l.get('your_rank'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF0F172A),
@@ -465,15 +471,15 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                   TextButton(
                     onPressed: () {},
                     child: Row(
-                      children: const [
+                      children: [
                         Text(
-                          "View All",
-                          style: TextStyle(
+                          l.get('view_all'),
+                          style: const TextStyle(
                             color: Color(0xFF6D5DF6),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.chevron_right,
                           color: Color(0xFF6D5DF6),
                           size: 18,
@@ -578,22 +584,22 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "You",
-                                  style: TextStyle(
+                                  l.get('you_label'),
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF6D5DF6),
                                     fontSize: 14,
                                   ),
                                 ),
                                 Text(
-                                  "Keep going, Aditya! 💧",
-                                  style: TextStyle(
+                                  l.get('keep_going'),
+                                  style: const TextStyle(
                                     fontSize: 11,
                                     color: Colors.grey,
                                   ),
@@ -613,7 +619,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: "PTS",
+                                  text: l.get('pts'),
                                   style: TextStyle(
                                     color: Colors.grey,
                                     fontSize: 11,
@@ -653,6 +659,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
   }
 
   void _showAllTasksDialog() {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -675,9 +682,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "All Tasks",
-              style: TextStyle(
+            Text(
+              l.get('all_tasks'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF0F172A),
@@ -715,23 +722,25 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                             ][index % 5],
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(
-                            [
-                              Icons.speed_rounded,
-                              Icons.water_rounded,
-                              Icons.science_rounded,
-                              Icons.plumbing_rounded,
-                              Icons.edit_note_rounded,
-                            ][index % 5],
-                            color: [
-                              const Color(0xFF6D5DF6),
-                              const Color(0xFF0D9488),
-                              const Color(0xFFCA8A04),
-                              const Color(0xFFE11D48),
-                              const Color(0xFF0284C7),
-                            ][index % 5],
-                            size: 24,
-                          ),
+                          child: index == 0
+                              ? SvgPicture.asset('assets/icons/pump_valves.svg', width: 24, height: 24)
+                              : Icon(
+                                  [
+                                    Icons.speed_rounded,
+                                    Icons.water_rounded,
+                                    Icons.science_rounded,
+                                    Icons.plumbing_rounded,
+                                    Icons.edit_note_rounded,
+                                  ][index % 5],
+                                  color: [
+                                    const Color(0xFF6D5DF6),
+                                    const Color(0xFF0D9488),
+                                    const Color(0xFFCA8A04),
+                                    const Color(0xFFE11D48),
+                                    const Color(0xFF0284C7),
+                                  ][index % 5],
+                                  size: 24,
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -772,7 +781,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                "+${task.points} PTS",
+                                "+${task.points} ${AppLocalizations.of(context)!.get('pts')}",
                                 style: const TextStyle(
                                   color: Color(0xFF6D5DF6),
                                   fontWeight: FontWeight.w700,
@@ -798,9 +807,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                   ),
                                   elevation: 0,
                                 ),
-                                child: const Text(
-                                  "Accept",
-                                  style: TextStyle(
+                                child: Text(
+                                  AppLocalizations.of(context)!.get('accept'),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12,
@@ -850,7 +859,8 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
 // ── Task Card Widget ─────────────────────────────────────────────────────────
 class _TaskCard extends StatelessWidget {
   final String pts;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? iconWidget;
   final Color iconBg;
   final Color iconColor;
   final Color cardBg;
@@ -860,7 +870,8 @@ class _TaskCard extends StatelessWidget {
 
   const _TaskCard({
     required this.pts,
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.iconBg,
     required this.iconColor,
     required this.cardBg,
@@ -922,7 +933,7 @@ class _TaskCard extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(icon, color: iconColor, size: 26),
+                  iconWidget ?? Icon(icon, color: iconColor, size: 26),
                   Positioned(
                     bottom: 2,
                     right: 2,
@@ -980,9 +991,9 @@ class _TaskCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 elevation: 0,
               ),
-              child: const Text(
-                "Accept Task",
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.get('accept_task_btn'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,

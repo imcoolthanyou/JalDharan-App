@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wifi_scan/wifi_scan.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/config/api_config.dart';
@@ -32,6 +33,7 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
   bool _checkingDevice = false;
   String? _espMac;
   String? _step2Error;
+  String? _wifiDiagnostic;
 
   // Step 3
   final _ssidController = TextEditingController();
@@ -137,52 +139,149 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
     setState(() {
       _checkingDevice = true;
       _step2Error = null;
+      _wifiDiagnostic = null;
     });
 
-    // Retry up to 3 times — phone may still be switching to JalDharan_Setup WiFi
-    for (int attempt = 1; attempt <= 3; attempt++) {
+    // Pre-flight: Check WiFi IP and SSID to verify we're on the right network
+    final info = NetworkInfo();
+    String? wifiIp;
+    String? wifiName;
+    try {
+      wifiIp = await info.getWifiIP();
+    } catch (_) {}
+    try {
+      wifiName = await info.getWifiName();
+      // Strip quotes that some platforms add around SSID
+      wifiName = wifiName?.replaceAll('"', '');
+    } catch (_) {}
+
+    final isOnEspNetwork = wifiIp != null && wifiIp.startsWith('192.168.4.');
+
+    // Check if connected to the right SSID at all
+    final connectedToRightWifi =
+        wifiName != null && wifiName.toLowerCase() == ApiConfig.espSsid.toLowerCase();
+
+    if (!connectedToRightWifi && !isOnEspNetwork) {
+      if (mounted) {
+        setState(() {
+          _checkingDevice = false;
+          _step2Error =
+              'You are not connected to the JalDharan_Setup WiFi.';
+          _wifiDiagnostic =
+              'Connected WiFi: ${wifiName ?? "unknown"}\nWiFi IP: ${wifiIp ?? "unknown"}\n\nPlease go to WiFi settings and connect to "${ApiConfig.espSsid}"';
+        });
+      }
+      return;
+    }
+
+    if (!isOnEspNetwork) {
+      if (mounted) {
+        setState(() {
+          _checkingDevice = false;
+          _step2Error =
+              'Connected to "$wifiName" but IP is not in the 192.168.4.x range.\n\nThis means the phone hasn’t fully switched to the ESP32 network yet.';
+          _wifiDiagnostic =
+              'WiFi: $wifiName\nWiFi IP: ${wifiIp ?? "unknown"} (should be 192.168.4.x)\n\nFix:\n1. Turn OFF mobile data\n2. Forget your home WiFi temporarily (or wait)\n3. Reconnect to "${ApiConfig.espSsid}"\n4. Wait 5 seconds then tap Retry';
+        });
+      }
+      return;
+    }
+
+    // WiFi IP is correct — try reaching ESP32
+    Object? lastError;
+    for (int attempt = 1; attempt <= 4; attempt++) {
       try {
         final response = await http
             .get(Uri.parse(ApiConfig.espInfoEndpoint))
-            .timeout(const Duration(seconds: 10));
+            .timeout(const Duration(seconds: 12));
 
         if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          final mac = data['esp_mac'] as String?;
-          if (mac != null && mac.isNotEmpty) {
+          final body = response.body.trim();
+
+          // Detect HTML response — captive portal is intercepting the request
+          if (body.startsWith('<') || body.startsWith('<!')) {
+            final snippet = body.length > 80 ? body.substring(0, 80) : body;
             if (mounted) {
               setState(() {
-                _espMac = mac;
                 _checkingDevice = false;
-                _step = _SetupStep.wifiForm;
+                _step2Error =
+                    'ESP32 captive portal is intercepting the /info request.\n\nThe device returned an HTML page instead of JSON data. This happens when the ESP32 firmware’s captive portal catches all HTTP requests.';
+                _wifiDiagnostic =
+                    'WiFi: ${wifiName ?? "unknown"} | IP: $wifiIp\nResponse starts with: $snippet...\n\nFix (choose one):\n1. In your ESP32 firmware, make /info bypass the captive portal and return JSON\n2. Dismiss the “Sign in to network” notification on your phone, then tap Retry';
               });
             }
             return;
-          } else {
+          }
+
+          try {
+            final data = jsonDecode(body);
+            final mac = data['esp_mac'] as String?;
+            if (mac != null && mac.isNotEmpty) {
+              if (mounted) {
+                setState(() {
+                  _espMac = mac;
+                  _checkingDevice = false;
+                  _step = _SetupStep.wifiForm;
+                });
+              }
+              return;
+            } else {
+              if (mounted) {
+                setState(() {
+                  _checkingDevice = false;
+                  _step2Error = 'Device responded but MAC address was missing from JSON.';
+                  _wifiDiagnostic =
+                      'WiFi IP: $wifiIp\nResponse: ${body.substring(0, body.length > 120 ? 120 : body.length)}';
+                });
+              }
+              return;
+            }
+          } on FormatException catch (e) {
             if (mounted) {
               setState(() {
                 _checkingDevice = false;
-                _step2Error = 'Device responded but MAC address was missing.';
+                _step2Error = 'ESP32 returned invalid data — not valid JSON.';
+                _wifiDiagnostic =
+                    'WiFi: ${wifiName ?? "unknown"} | IP: $wifiIp\nParse error: ${e.message}\nResponse starts with: ${body.substring(0, body.length > 80 ? 80 : body.length)}';
               });
             }
             return;
           }
         }
-      } catch (_) {
-        if (attempt < 3) {
-          // Wait 2s before retry
-          await Future.delayed(const Duration(seconds: 2));
+        lastError = 'HTTP ${response.statusCode}';
+      } catch (e) {
+        lastError = e;
+        if (attempt < 4) {
+          await Future.delayed(const Duration(seconds: 3));
           if (!mounted) return;
         }
       }
     }
 
-    // All 3 attempts failed
+    // All 4 attempts failed — show the actual error
     if (mounted) {
       setState(() {
         _checkingDevice = false;
-        _step2Error =
-            "Could not reach device at ${ApiConfig.espInfoEndpoint}.\nMake sure you're connected to '${ApiConfig.espSsid}' WiFi and the sensor is powered on.";
+        final errorStr = lastError?.toString() ?? 'unknown error';
+        final isTimeout = errorStr.contains('TimeoutException') || errorStr.contains('Timeout');
+        final isConnectionRefused = errorStr.contains('Connection refused') || errorStr.contains('ECONNREFUSED');
+        final isNoRoute = errorStr.contains('No route to host') || errorStr.contains('ENETUNREACH') || errorStr.contains('Network is unreachable');
+
+        if (isTimeout) {
+          _step2Error =
+              'Connection timed out — phone can see the network but ESP32 is not responding.\n\nThe ESP32 web server may not be running. Check that the sensor is powered on and the firmware is running correctly.';
+        } else if (isConnectionRefused) {
+          _step2Error =
+              'Connection refused — the ESP32 is reachable but its web server is not accepting connections.\n\nCheck that the ESP32 firmware is running and the web server is started.';
+        } else if (isNoRoute) {
+          _step2Error =
+              'No route to ESP32 — Android cannot reach 192.168.4.1 even though WiFi IP is $wifiIp.\n\nTry: toggle WiFi OFF then ON again, wait 5 seconds, then Retry.';
+        } else {
+          _step2Error =
+              'Could not reach device at ${ApiConfig.espInfoEndpoint}.';
+        }
+        _wifiDiagnostic =
+            'WiFi: ${wifiName ?? "unknown"} | IP: $wifiIp\nError: $errorStr';
       });
     }
   }
@@ -656,27 +755,91 @@ class _DeviceSetupPageState extends State<DeviceSetupPage> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.criticalRed.withOpacity(0.3)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.error_outline_rounded,
-                  color: AppColors.criticalRed,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _step2Error!,
-                    style: const TextStyle(
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
                       color: AppColors.criticalRed,
-                      fontSize: 12,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _step2Error!,
+                        style: const TextStyle(
+                          color: AppColors.criticalRed,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_wifiDiagnostic != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.criticalRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      _wifiDiagnostic!,
+                      style: const TextStyle(
+                        color: AppColors.criticalRed,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
-                ),
+                ],
+                // Show mobile data fix instructions when routing issue detected
+                if (_wifiDiagnostic != null) ...[
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Fix: Turn OFF mobile data temporarily',
+                    style: TextStyle(
+                      color: AppColors.criticalRed,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '1. Turn OFF mobile data (keep WiFi ON)\n2. Wait 3 seconds\n3. Tap Retry below',
+                    style: TextStyle(
+                      color: AppColors.mediumGrey,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(height: 12),
+          if (_wifiDiagnostic != null)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _checkingDevice ? null : _checkEspConnection,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(
+                  _checkingDevice ? 'Retrying...' : 'Retry',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.deepAquiferBlue,
+                  side: const BorderSide(color: AppColors.deepAquiferBlue),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
         ],
         SizedBox(
           width: double.infinity,

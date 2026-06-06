@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -83,6 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0FA),
       body: SafeArea(
@@ -91,18 +92,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Profile",
-                style: TextStyle(
+              Text(
+                l.get('profile'),
+                style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                "Manage your account and preferences",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+              Text(
+                l.get('profile_subtitle'),
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 24),
 
@@ -205,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                     SizedBox(width: 4),
                                   Text(
-                                    "Level ${UserProfile.mockCurrentUser().level}",
+                                    '${l.get('level_label')} ${UserProfile.mockCurrentUser().level}',
                                     style: const TextStyle(
                                       color: Color(0xFF6D5DF6),
                                       fontWeight: FontWeight.w700,
@@ -216,10 +217,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Flexible(
+                              Flexible(
                                 child: Text(
-                                  "Groundwater Guardian",
-                                  style: TextStyle(
+                                  l.get('groundwater_guardian'),
+                                  style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 12,
                                   ),
@@ -247,8 +248,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               SizedBox(width: 4),
                               Text(
-                                "Water Points",
-                                style: TextStyle(
+                                l.get('water_points'),
+                                style: const TextStyle(
                                   color: Colors.grey,
                                   fontSize: 13,
                                 ),
@@ -265,9 +266,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 size: 16,
                                 color: Colors.white,
                               ),
-                              label: const Text(
-                                "Edit Profile",
-                                style: TextStyle(
+                              label: Text(
+                                l.get('edit_profile'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
@@ -297,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // ── Personal Details ──
               _SectionHeader(
                 icon: Icons.person_outline_rounded,
-                label: "Personal Details",
+                label: l.get('personal_details'),
               ),
               const SizedBox(height: 12),
               _InfoCard(
@@ -306,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.email_rounded,
                     iconBg: const Color(0xFFEDE9FE),
                     iconColor: const Color(0xFF6D5DF6),
-                    title: "Email",
+                    title: l.get('email'),
                     subtitle: _email,
                   ),
                   _divider(),
@@ -314,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.phone_rounded,
                     iconBg: const Color(0xFFDCFCE7),
                     iconColor: const Color(0xFF16A34A),
-                    title: "Mobile Number",
+                    title: l.get('mobile_number'),
                     subtitle: "+91 98765 43210",
                   ),
                   _divider(),
@@ -322,7 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.location_on_rounded,
                     iconBg: const Color(0xFFE0F2FE),
                     iconColor: const Color(0xFF0284C7),
-                    title: "Location",
+                    title: l.get('location'),
                     subtitle: _location,
                   ),
                 ],
@@ -333,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // ── Preferences ──
               _SectionHeader(
                 icon: Icons.settings_outlined,
-                label: "Preferences",
+                label: l.get('preferences'),
               ),
               const SizedBox(height: 12),
               _InfoCard(
@@ -372,8 +373,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     fontSize: 12,
                                     color: Colors.grey,
                                   ),
-                                ),
-                              ],
+                                ),                              ],
                             ),
                           ),
                           GestureDetector(
@@ -431,21 +431,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: const Color(0xFF16A34A),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Notifications",
-                                style: TextStyle(
+                                l.get('notifications'),
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
                               Text(
-                                "Stay updated with important alerts",
-                                style: TextStyle(
+                                l.get('notifications_desc'),
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
                                 ),
@@ -479,21 +479,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: const Color(0xFF6D5DF6),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Dark Mode",
-                                style: TextStyle(
+                                l.get('dark_mode'),
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                   color: Color(0xFF0F172A),
                                 ),
                               ),
                               Text(
-                                "Reduce eye strain in low light",
-                                style: TextStyle(
+                                l.get('dark_mode_desc'),
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
                                 ),
@@ -521,7 +521,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // ── Account ──
               _SectionHeader(
                 icon: Icons.lock_outline_rounded,
-                label: "Account",
+                label: l.get('account'),
               ),
               const SizedBox(height: 12),
               _InfoCard(
@@ -530,7 +530,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.lock_rounded,
                     iconBg: const Color(0xFFEDE9FE),
                     iconColor: const Color(0xFF6D5DF6),
-                    title: "Change Password",
+                    title: l.get('change_password'),
                     subtitle: null,
                   ),
                   _divider(),
@@ -538,7 +538,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.security_rounded,
                     iconBg: const Color(0xFFDCFCE7),
                     iconColor: const Color(0xFF16A34A),
-                    title: "Privacy Policy",
+                    title: l.get('privacy_policy'),
                     subtitle: null,
                   ),
                   _divider(),
@@ -546,7 +546,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.info_rounded,
                     iconBg: const Color(0xFFE0F2FE),
                     iconColor: const Color(0xFF0284C7),
-                    title: "About App",
+                    title: l.get('about_app'),
                     subtitle: null,
                   ),
                   _divider(),
@@ -554,7 +554,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.star_rounded,
                     iconBg: const Color(0xFFFEF9C3),
                     iconColor: const Color(0xFFCA8A04),
-                    title: "Rate App",
+                    title: l.get('rate_app'),
                     subtitle: null,
                   ),
                 ],
@@ -595,10 +595,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           const SizedBox(width: 14),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              "Logout",
-                              style: TextStyle(
+                              l.get('logout'),
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
                                 color: Color(0xFFEF4444),
@@ -647,8 +647,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF0F172A),
               ),
-            ),
-            const SizedBox(height: 16),
+            ),            const SizedBox(height: 16),
             _languageOption(
               label: 'English',
               code: 'en',

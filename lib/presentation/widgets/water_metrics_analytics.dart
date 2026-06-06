@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/models/groundwater_data.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/app_localizations.dart';
@@ -119,7 +120,11 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                     ),
                     const SizedBox(width: 12),
                     _buildQuickMetricCard(
-                      icon: Icons.opacity,
+                      iconWidget: SvgPicture.asset(
+                        'assets/icons/PH_Icon.svg',
+                        width: 24,
+                        height: 24,
+                      ),
                       iconColor: AppColors.fieldGreen,
                       iconBg: AppColors.fieldGreen.withValues(alpha: 0.1),
                       label: AppLocalizations.of(context)?.get('ph_level') ?? 'pH Level',
@@ -150,7 +155,8 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
   }
 
   Widget _buildQuickMetricCard({
-    required IconData icon,
+    IconData? icon,
+    Widget? iconWidget,
     required Color iconColor,
     required Color iconBg,
     required String label,
@@ -181,7 +187,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            child: Icon(icon, color: iconColor, size: 24),
+            child: iconWidget ?? Icon(icon, color: iconColor, size: 24),
           ),
           const SizedBox(height: 12),
 
