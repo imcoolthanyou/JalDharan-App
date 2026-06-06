@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
-import '../../../core/models/gamification_data.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/localization/app_localizations.dart';
+import '../../../core/models/gamification_data.dart';
 import 'widgets/proof_upload_dialog.dart';
 import 'widgets/task_acceptance_dialog.dart';
 import '../notifications/notifications_screen.dart';
-import 'dart:io';
 
 class GamificationV2Screen extends StatefulWidget {
   const GamificationV2Screen({super.key});
@@ -26,7 +22,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
     super.initState();
     _totalPoints = _userProfile.totalPoints;
   }
-  
 
   void _onAcceptTask(DailyTask task) {
     showDialog(
@@ -53,7 +48,8 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                         final newLevel = (_totalPoints ~/ 500) + 1;
                         final progressPoints = _totalPoints % 500;
                         _userProfile.level = newLevel;
-                        _userProfile.levelProgress = ((progressPoints / 500) * 100).toInt();
+                        _userProfile.levelProgress =
+                            ((progressPoints / 500) * 100).toInt();
                       });
 
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -103,36 +99,15 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Text(
-                              "Earn points, complete tasks\nand climb the leaderboard!",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Column(
-                              children: const [
-                                Text(
-                                  "✦",
-                                  style: TextStyle(
-                                    color: Color(0xFF8B5CF6),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  "✦",
-                                  style: TextStyle(
-                                    color: Color(0xFF8B5CF6),
-                                    fontSize: 8,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                        Text(
+                          "Earn points, complete tasks\nand climb the leaderboard!",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                            height: 1.4,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                       ],
                     ),
@@ -233,16 +208,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                         fit: BoxFit.contain,
                       ),
                     ),
-                    Positioned(
-                      bottom: 54,
-                      left: 24,
-                      child: Icon(
-                        Icons.water_drop,
-                        size: 22,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    // ── Left text content (inside Stack, inside Hero Card) ──
+                    // ── Left text content ──
                     Positioned(
                       top: 24,
                       left: 24,
@@ -283,18 +249,20 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           const SizedBox(height: 10),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
-                            children:  [
+                            children: [
                               Text(
                                 "$_totalPoints",
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 52,
                                   fontWeight: FontWeight.w900,
                                   height: 1,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
-                              SizedBox(width: 6),
-                              Icon(
+                              const SizedBox(width: 6),
+                              const Icon(
                                 Icons.water_drop,
                                 color: Colors.white70,
                                 size: 20,
@@ -308,7 +276,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                               fontSize: 14,
                             ),
                           ),
-                          const Spacer(),
+                          const Spacer(flex: 2),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -329,7 +297,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
@@ -343,12 +311,13 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3),
                           Text(
                             "${_userProfile.levelProgress * 50} / 5,000 XP",
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 11,
+                              height: 1.2,
                             ),
                           ),
                         ],
@@ -357,7 +326,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 28),
 
               // ── Daily Assignment Header ───────────────────────────────
@@ -683,6 +651,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
       ),
     );
   }
+
   void _showAllTasksDialog() {
     showModalBottomSheet(
       context: context,
@@ -824,7 +793,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   elevation: 0,
                                 ),
                                 child: const Text(

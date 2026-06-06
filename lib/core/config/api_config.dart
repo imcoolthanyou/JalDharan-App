@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'https://jal-dharan-backend-827267712942.asia-south1.run.app';
+  static const String baseUrl = 'http://10.50.236.219:8000';
 
   // Dashboard endpoints
   static const String dashboardEndpoint = '$baseUrl/dashboard';
