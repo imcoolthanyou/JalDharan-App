@@ -17,17 +17,17 @@ class UserProfile {
     required this.position,
   });
 
-  static UserProfile mockCurrentUser() {
-    return UserProfile(
-      name: 'You',
-      rank: 'GUARDIAN',
-      totalPoints: 1250,
-      level: 5,
-      levelProgress: 85,
-      badge: 'Me',
-      position: 12,
-    );
-  }
+  static final UserProfile _instance = UserProfile(
+    name: 'You',
+    rank: 'GUARDIAN',
+    totalPoints: 0,
+    level: 1,
+    levelProgress: 0,
+    badge: 'Me',
+    position: 12,
+  );
+
+  static UserProfile mockCurrentUser() => _instance;
 }
 
 class DailyTask {
@@ -57,47 +57,48 @@ class DailyTask {
 
   static List<DailyTask> mockDailyTasks() {
     return [
+      // REPLACE
       DailyTask(
         id: 1,
-        title: 'Check pump valves for leaks',
+        title: 'Check Pump Valves',
         description:
-            'Inspect the main distribution valves in Field #4 to ensure zero wastage.',
+        'Check if any water valve near the pump is leaking. Take a photo as proof.',
         titleKey: 'task_1_title',
         descKey: 'task_1_desc',
         points: 100,
       ),
       DailyTask(
         id: 2,
-        title: 'Monitor water level readings',
+        title: 'Check Water Level',
         description:
-            'Check the groundwater depth at monitoring well #2 and record the measurement.',
+        'Go to the nearest well, measure how deep the water is, and write it down.',
         titleKey: 'task_2_title',
         descKey: 'task_2_desc',
         points: 75,
       ),
       DailyTask(
         id: 3,
-        title: 'Test water quality',
+        title: 'Test Water Quality',
         description:
-            'Collect water samples and test pH, TDS, and turbidity levels.',
+        'Collect a water sample and check if it is clean. Good water means healthy crops!',
         titleKey: 'task_3_title',
         descKey: 'task_3_desc',
         points: 150,
       ),
       DailyTask(
         id: 4,
-        title: 'Inspect irrigation pipes',
+        title: 'Check Irrigation Pipes',
         description:
-            'Walk through Field #1-3 to check for any visible leaks or damage in irrigation lines.',
+        'Walk through your fields and look for any pipe cracks or leaks. Report what you find.',
         titleKey: 'task_4_title',
         descKey: 'task_4_desc',
         points: 80,
       ),
       DailyTask(
         id: 5,
-        title: 'Record maintenance log',
+        title: 'Fill Daily Report',
         description:
-            'Update the daily maintenance log with current system status and any issues found.',
+        'Write down how the system worked today and any problems you noticed. Earn points daily!',
         titleKey: 'task_5_title',
         descKey: 'task_5_desc',
         points: 50,

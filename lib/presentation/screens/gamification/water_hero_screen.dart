@@ -4,7 +4,6 @@ import '../../../core/models/gamification_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'widgets/proof_upload_dialog.dart';
-import '../../widgets/custom_gradient_appbar.dart';
 import 'dart:io';
 
 class WaterHeroScreen extends StatefulWidget {
@@ -44,12 +43,13 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
         if (mounted) {
           showDialog(
             context: context,
-            builder: (context) => ProofUploadDialog(
-              task: task,
-              onProofSubmitted: (String? proofPath) {
-                _handleProofSubmitted(task, proofPath);
-              },
-            ),
+            builder: (context) =>
+                ProofUploadDialog(
+                  task: task,
+                  onProofSubmitted: (String? proofPath) {
+                    _handleProofSubmitted(task, proofPath);
+                  },
+                ),
           );
         }
       });
@@ -74,7 +74,7 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
         // Update rank dynamically
         try {
           RankingUser currentUser = _rankings.firstWhere(
-            (r) => r.isCurrentUser,
+                (r) => r.isCurrentUser,
           );
           currentUser.points = _totalPoints;
           _rankings.sort((a, b) => b.points.compareTo(a.points));
@@ -193,213 +193,224 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          constraints: const BoxConstraints(maxHeight: 540),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.deepAquiferBlue, AppColors.tealStart],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.emoji_events_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      AppLocalizations.of(context)!.get('leaderboard_title'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white70,
-                        size: 22,
-                      ),
-                    ),
-                  ],
-                ),
+      builder: (context) =>
+          Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 540),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
               ),
-              // Table header
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      child: Text(
-                        AppLocalizations.of(context)!.get('leaderboard_rank'),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.mediumGrey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.deepAquiferBlue,
+                          AppColors.tealStart
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.emoji_events_rounded,
+                          color: Colors.white,
+                          size: 24,
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.get('leaderboard_name'),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.mediumGrey,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      AppLocalizations.of(context)!.get('leaderboard_points'),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.mediumGrey,
-                      ),
-                    ),
-                    const SizedBox(width: 28),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              // Table rows
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: allLeaders.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final leader = allLeaders[index];
-                    final isMe = leader['isMe'] == true;
-                    final isTop3 = leader['pos'] <= 3;
-                    final isUp = leader['trend'] == 'up';
-                    final medalColors = [
-                      const Color(0xFFFFD700),
-                      const Color(0xFFC0C0C0),
-                      const Color(0xFFCD7F32),
-                    ];
-                    return Container(
-                      color: isMe
-                          ? AppColors.deepAquiferBlue.withOpacity(0.06)
-                          : null,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 36,
-                            child: isTop3
-                                ? Icon(
-                                    Icons.emoji_events_rounded,
-                                    color: medalColors[leader['pos'] - 1],
-                                    size: 20,
-                                  )
-                                : Text(
-                                    '${leader['pos']}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: isMe
-                                          ? AppColors.deepAquiferBlue
-                                          : AppColors.mediumGrey,
-                                    ),
-                                  ),
+                        const SizedBox(width: 10),
+                        Text(
+                          AppLocalizations.of(context)!.get(
+                              'leaderboard_title'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? AppColors.deepAquiferBlue
-                                  : AppColors.deepAquiferBlue.withOpacity(0.1),
-                              shape: BoxShape.circle,
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white70,
+                            size: 22,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Table header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 36,
+                          child: Text(
+                            AppLocalizations.of(context)!.get(
+                                'leaderboard_rank'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.mediumGrey,
                             ),
-                            child: Center(
-                              child: Text(
-                                leader['initials'],
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: isMe
-                                      ? Colors.white
-                                      : AppColors.deepAquiferBlue,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(context)!.get(
+                                'leaderboard_name'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.mediumGrey,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          AppLocalizations.of(context)!.get(
+                              'leaderboard_points'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.mediumGrey,
+                          ),
+                        ),
+                        const SizedBox(width: 28),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Table rows
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: allLeaders.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final leader = allLeaders[index];
+                        final isMe = leader['isMe'] == true;
+                        final isTop3 = leader['pos'] <= 3;
+                        final isUp = leader['trend'] == 'up';
+                        final medalColors = [
+                          const Color(0xFFFFD700),
+                          const Color(0xFFC0C0C0),
+                          const Color(0xFFCD7F32),
+                        ];
+                        return Container(
+                          color: isMe
+                              ? AppColors.deepAquiferBlue.withOpacity(0.06)
+                              : null,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 36,
+                                child: isTop3
+                                    ? Icon(
+                                  Icons.emoji_events_rounded,
+                                  color: medalColors[leader['pos'] - 1],
+                                  size: 20,
+                                )
+                                    : Text(
+                                  '${leader['pos']}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: isMe
+                                        ? AppColors.deepAquiferBlue
+                                        : AppColors.mediumGrey,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              leader['name'],
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isMe
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                color: isMe
-                                    ? AppColors.deepAquiferBlue
-                                    : AppColors.darkGrey,
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: isMe
+                                      ? AppColors.deepAquiferBlue
+                                      : AppColors.deepAquiferBlue.withOpacity(
+                                      0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    leader['initials'],
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: isMe
+                                          ? Colors.white
+                                          : AppColors.deepAquiferBlue,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  leader['name'],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isMe
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                    color: isMe
+                                        ? AppColors.deepAquiferBlue
+                                        : AppColors.darkGrey,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${leader['points']}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: isMe
+                                      ? AppColors.deepAquiferBlue
+                                      : AppColors.darkGrey,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                isUp
+                                    ? Icons.arrow_upward_rounded
+                                    : Icons.arrow_downward_rounded,
+                                size: 16,
+                                color: isUp
+                                    ? AppColors.fieldGreen
+                                    : AppColors.criticalRed,
+                              ),
+                            ],
                           ),
-                          Text(
-                            '${leader['points']}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: isMe
-                                  ? AppColors.deepAquiferBlue
-                                  : AppColors.darkGrey,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(
-                            isUp
-                                ? Icons.arrow_upward_rounded
-                                : Icons.arrow_downward_rounded,
-                            size: 16,
-                            color: isUp
-                                ? AppColors.fieldGreen
-                                : AppColors.criticalRed,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -407,146 +418,174 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: Text(
-          AppLocalizations.of(context)!.get('gamification'),
-          style: const TextStyle(
-            color: AppColors.darkGrey,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.darkGrey),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Hero Card with Points and Level
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildHeroCard(context),
-            ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
 
-            // Penalty Alert
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildPenaltyAlert(context),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Daily Assignment Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.assignment_rounded,
-                    color: AppColors.deepAquiferBlue,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    AppLocalizations.of(context)!.get('daily_assignment'),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkGrey,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "Gamification",
+                            style: TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            "Earn points, complete tasks and climb the leaderboard!",
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.notifications_none_rounded,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              // Hero Card with Points and Level
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: _buildHeroCard(context),
+              ),
 
-            // Daily Tasks List
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: List.generate(
-                  _dailyTasks.length,
-                  (index) => Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index < _dailyTasks.length - 1 ? 16 : 0,
+              const SizedBox(height: 24),
+
+              // Daily Assignment Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.assignment_rounded,
+                      color: AppColors.deepAquiferBlue,
+                      size: 24,
                     ),
-                    child: _buildTaskCard(context, _dailyTasks[index]),
+                    const SizedBox(width: 10),
+                    Text(
+                      AppLocalizations.of(context)!.get('daily_assignment'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.darkGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Daily Tasks List
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: List.generate(
+                    _dailyTasks.length,
+                        (index) =>
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index < _dailyTasks.length - 1 ? 16 : 0,
+                          ),
+                          child: _buildTaskCard(context, _dailyTasks[index]),
+                        ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // Your Rank Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.bar_chart_rounded,
-                        color: AppColors.warningOrange,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        AppLocalizations.of(context)!.get('your_rank'),
+              // Your Rank Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.bar_chart_rounded,
+                          color: AppColors.warningOrange,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          AppLocalizations.of(context)!.get('your_rank'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkGrey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () => _showLeaderboardDialog(),
+                      child: Text(
+                        AppLocalizations.of(context)!.get('view_all'),
                         style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.darkGrey,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.deepAquiferBlue,
                         ),
                       ),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () => _showLeaderboardDialog(),
-                    child: Text(
-                      AppLocalizations.of(context)!.get('view_all'),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.deepAquiferBlue,
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Rankings List
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: List.generate(
-                  _rankings.length,
-                  (index) => Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index < _rankings.length - 1 ? 12 : 0,
-                    ),
-                    child: _buildRankingCard(_rankings[index]),
+              // Rankings List
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: List.generate(
+                    _rankings.length,
+                        (index) =>
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index < _rankings.length - 1 ? 12 : 0,
+                          ),
+                          child: _buildRankingCard(_rankings[index]),
+                        ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
+
     );
   }
 
@@ -577,7 +616,8 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
                 const Icon(Icons.shield_rounded, color: Colors.white, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  '${AppLocalizations.of(context)!.get('rank_label')}: ${_userProfile.rank}',
+                  '${AppLocalizations.of(context)!.get(
+                      'rank_label')}: ${_userProfile.rank}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -622,7 +662,8 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${AppLocalizations.of(context)!.get('level_label')} ${_userProfile.level}',
+                '${AppLocalizations.of(context)!.get(
+                    'level_label')} ${_userProfile.level}',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -700,7 +741,8 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${AppLocalizations.of(context)!.get('current_value')}: ${_userProfile.totalPoints} pts',
+            '${AppLocalizations.of(context)!.get(
+                'current_value')}: ${_userProfile.totalPoints} pts',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -1085,3 +1127,6 @@ class _WaterHeroScreenState extends State<WaterHeroScreen> {
     );
   }
 }
+
+
+

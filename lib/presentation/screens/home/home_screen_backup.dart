@@ -18,6 +18,8 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../notifications/notifications_screen.dart';
+import '../community_settings/profile.dart';
 
 class HOmeScreenBackup extends StatefulWidget {
   const HOmeScreenBackup({super.key});
@@ -248,6 +250,14 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
     socketService.removeConnectionStatusListener(_onConnectionStatusChanged);
     super.dispose();
   }
+  String _getInitials() {
+    if (name.isEmpty) return 'U';
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -260,15 +270,41 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             //Profile Button With Container
-            Container(
-              margin: EdgeInsets.only(bottom: 4),
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.lightGrey,
-                shape: BoxShape.circle,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ProfileScreen(),
+                  ),
+                );
+              },
+              child: Container(
+                margin: EdgeInsets.only(bottom: 4),
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE9FE),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.07),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    _getInitials(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF6D5DF6),
+                    ),
+                  ),
+                ),
               ),
-              child: Icon(Icons.person, color: AppColors.mediumGrey),
             ),
             const SizedBox(width: 8),
             //Message Section
@@ -282,7 +318,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                         AppLocalizations.of(context)?.get('good_morning') ?? 'Good Morning, ',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.mediumGrey,
+                          color: AppColors.darkGrey,
                         ),
                       ),
                       Text(
@@ -306,7 +342,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                     msg,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.mediumGrey,
+                      color: AppColors.darkGrey,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -316,34 +352,56 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
 
             //Notification Section which leads to notification pages with red dot if notification is unread
             Stack(
-              alignment: Alignment.topCenter,
               children: [
                 GestureDetector(
                   onTap: () {
-                    // Navigate to notification page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
+                      ),
+                    );
                   },
                   child: Container(
-                    width: 48,
-                    height: 48,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.lightGrey,
+                      color: Colors.white,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.07),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Icon(
-                      Icons.notifications,
-                      color: AppColors.mediumGrey,
+                    child: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Color(0xFF334155),
+                      size: 24,
                     ),
                   ),
                 ),
                 Positioned(
-                  top: 0,
-                  right: 0,
+                  top: 6,
+                  right: 6,
                   child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEF4444),
                       shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "3",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
