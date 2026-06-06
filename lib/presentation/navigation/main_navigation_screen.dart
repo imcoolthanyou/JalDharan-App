@@ -42,7 +42,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             borderRadius: BorderRadius.circular(40),
             boxShadow: [
               BoxShadow(
-                color: AppColors.deepAquiferBlue.withOpacity(0.15),
+                color: AppColors.primary.withOpacity(0.15),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               ),
@@ -67,17 +67,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     width: 60,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [
-                          AppColors.tealStart,
-                          AppColors.deepAquiferBlue,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: AppColors.primary,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.deepAquiferBlue.withOpacity(0.4),
+                          color: AppColors.primary.withOpacity(0.4),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -117,7 +110,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Icon(
               isSelected ? activeIcon : icon,
               color: isSelected
-                  ? AppColors.deepAquiferBlue
+                  ? AppColors.primary
                   : AppColors.mediumGrey,
               size: 28,
             ),
@@ -127,7 +120,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 width: 4,
                 height: 4,
                 decoration: const BoxDecoration(
-                  color: AppColors.deepAquiferBlue,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
               )
