@@ -69,7 +69,6 @@ flutter:
   assets:
     - assets/
     - assets/images/
-    - assets/icons/
-    - assets/models/house_model.glb
+    - assets/Icons/
     - assets/recharge_shaft_with_pit.glb
     - assets/recharge_Trench.glb

@@ -121,7 +121,7 @@ class _WaterMetricsAnalyticsState extends State<WaterMetricsAnalytics> {
                     const SizedBox(width: 12),
                     _buildQuickMetricCard(
                       iconWidget: SvgPicture.asset(
-                        'assets/icons/PH_Icon.svg',
+                        'assets/Icons/PH_Icon.svg',
                         width: 24,
                         height: 24,
                       ),

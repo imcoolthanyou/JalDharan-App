@@ -111,175 +111,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
     });
   }
 
-  void _showAllTasksDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        maxChildSize: 0.95,
-        builder: (_, controller) => Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "All Tasks",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.separated(
-                controller: controller,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _dailyTasks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final task = _dailyTasks[index];
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: [
-                              const Color(0xFFDDD6FE),
-                              const Color(0xFFCCFBF1),
-                              const Color(0xFFFEF9C3),
-                              const Color(0xFFFFE4E6),
-                              const Color(0xFFE0F2FE),
-                            ][index % 5],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            [
-                              Icons.speed_rounded,
-                              Icons.water_rounded,
-                              Icons.science_rounded,
-                              Icons.plumbing_rounded,
-                              Icons.edit_note_rounded,
-                            ][index % 5],
-                            color: [
-                              const Color(0xFF6D5DF6),
-                              const Color(0xFF0D9488),
-                              const Color(0xFFCA8A04),
-                              const Color(0xFFE11D48),
-                              const Color(0xFF0284C7),
-                            ][index % 5],
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                task.title,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                task.description,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEDE9FE),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                "+${task.points} PTS",
-                                style: const TextStyle(
-                                  color: Color(0xFF6D5DF6),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: 100,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _onAcceptTask(task);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6D5DF6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  padding:
-                                  const EdgeInsets.symmetric(vertical: 8),
-                                  elevation: 0,
-                                ),
-                                child: const Text(
-                                  "Accept",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showLeaderboardDialog() {
     showModalBottomSheet(
       context: context,
@@ -320,7 +151,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final data =
-                  _leaderboardUsers[index].data() as Map<String, dynamic>;
+                      _leaderboardUsers[index].data() as Map<String, dynamic>;
                   final uid = _leaderboardUsers[index].id;
                   final currentUid = FirebaseAuth.instance.currentUser?.uid;
                   final isMe = uid == currentUid;
@@ -335,11 +166,11 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
 
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      color: isMe
-                          ? const Color(0xFFF0EEFF)
-                          : Colors.white,
+                      color: isMe ? const Color(0xFFF0EEFF) : Colors.white,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: isMe
@@ -356,18 +187,19 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           height: 32,
                           decoration: index < 3
                               ? BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _medalColors[index]
-                                .withOpacity(0.15),
-                            border: Border.all(
-                                color: _medalColors[index], width: 2),
-                          )
+                                  shape: BoxShape.circle,
+                                  color: _medalColors[index].withOpacity(0.15),
+                                  border: Border.all(
+                                    color: _medalColors[index],
+                                    width: 2,
+                                  ),
+                                )
                               : BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: isMe
-                                ? const Color(0xFFEDE9FE)
-                                : const Color(0xFFF1F5F9),
-                          ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: isMe
+                                      ? const Color(0xFFEDE9FE)
+                                      : const Color(0xFFF1F5F9),
+                                ),
                           child: Center(
                             child: Text(
                               "${index + 1}",
@@ -392,7 +224,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                             color: isMe
                                 ? const Color(0xFF6D5DF6)
                                 : _avatarColors[index % _avatarColors.length]
-                                .withOpacity(0.25),
+                                      .withOpacity(0.25),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
@@ -403,8 +235,8 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 fontSize: 14,
                                 color: isMe
                                     ? Colors.white
-                                    : _avatarColors[
-                                index % _avatarColors.length],
+                                    : _avatarColors[index %
+                                          _avatarColors.length],
                               ),
                             ),
                           ),
@@ -430,7 +262,9 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 const Text(
                                   "Keep going! 💧",
                                   style: TextStyle(
-                                      fontSize: 11, color: Colors.grey),
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                             ],
                           ),
@@ -534,25 +368,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 height: 1.4,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Column(
-                              children: const [
-                                Text(
-                                  "✦",
-                                  style: TextStyle(
-                                    color: Color(0xFF8B5CF6),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  "✦",
-                                  style: TextStyle(
-                                    color: Color(0xFF8B5CF6),
-                                    fontSize: 8,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ],
@@ -616,162 +431,6 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Hero Card ────────────────────────────────────────────
-              Container(
-                width: double.infinity,
-                height: 210,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color: AppColors.primary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF5B4FE8).withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(top: 14, right: 140, child: _bubble(10, 0.3)),
-                    Positioned(top: 60, right: 110, child: _bubble(7, 0.2)),
-                    Positioned(
-                        bottom: 40, right: 160, child: _bubble(14, 0.25)),
-                    Positioned(top: 30, right: 30, child: _bubble(8, 0.2)),
-                    Positioned(
-                      right: 10,
-                      top: 15,
-                      child: Image.asset(
-                        "assets/images/trophy.png",
-                        width: 135,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 54,
-                      left: 24,
-                      child: Icon(
-                        Icons.water_drop,
-                        size: 22,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    // ── Left text content (inside Stack, inside Hero Card) ──
-                    Positioned(
-                      top: 24,
-                      left: 24,
-                      right: 150,
-                      bottom: 24,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
-                                  Icons.star_rounded,
-                                  color: Colors.amber,
-                                  size: 16,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  "Rank #12",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                "$_totalPoints",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 52,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              SizedBox(width: 6),
-                              Icon(
-                                Icons.water_drop,
-                                color: Colors.white70,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                          const Text(
-                            "Total Water Points",
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const Spacer(flex: 2),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${l.get('level_label')} ${_userProfile.level}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                l.get('level_progress')
-                                    .replaceAll('{progress}', '${_userProfile.levelProgress}')
-                                    .replaceAll('{next}', '${_userProfile.level + 1}'),
-                                style: const TextStyle(
-                                    color: Colors.white70, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: _userProfile.levelProgress / 100,
-                              minHeight: 8,
-                              backgroundColor:
-                              Colors.white.withValues(alpha: 0.25),
-                              valueColor:
-                              const AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            l.get('xp_format').replaceAll('{current}', '${_userProfile.levelProgress * 50}'),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
               // ── Daily Assignment Header ───────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -785,8 +444,11 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           color: const Color(0xFFEDE9FE),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.assignment_outlined,
-                            color: Color(0xFF6D5DF6), size: 20),
+                        child: const Icon(
+                          Icons.assignment_outlined,
+                          color: Color(0xFF6D5DF6),
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -799,75 +461,26 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                       ),
                     ],
                   ),
-                  TextButton(
-                    onPressed: _showAllTasksDialog,
-                    child: Row(
-                      children: const [
-                        Text(
-                          "View All",
-                          style: TextStyle(
-                            color: Color(0xFF6D5DF6),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Color(0xFF6D5DF6),
-                          size: 18,
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
 
               const SizedBox(height: 14),
 
-              // ── Task Cards Row ────────────────────────────────────────
-              SizedBox(
-                height: 220,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _dailyTasks.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemBuilder: (context, index) {
-                    final task = _dailyTasks[index];
-                    final iconBgs = [
-                      const Color(0xFFDDD6FE),
-                      const Color(0xFFCCFBF1),
-                      const Color(0xFFFEF9C3),
-                      const Color(0xFFFFE4E6),
-                      const Color(0xFFE0F2FE),
-                    ];
-                    final iconColors = [
-                      const Color(0xFF6D5DF6),
-                      const Color(0xFF0D9488),
-                      const Color(0xFFCA8A04),
-                      const Color(0xFFE11D48),
-                      const Color(0xFF0284C7),
-                    ];
-                    final iconWidgets = [
-                      SvgPicture.asset('assets/icons/pump_valves.svg', width: 26, height: 26),
-                      Icon(Icons.water_rounded, color: iconColors[1], size: 26),
-                      Icon(Icons.science_rounded, color: iconColors[2], size: 26),
-                      Icon(Icons.plumbing_rounded, color: iconColors[3], size: 26),
-                      Icon(Icons.edit_note_rounded, color: iconColors[4], size: 26),
-                    ];
-                    return SizedBox(
-                      width: 160,
-                      child: _TaskCard(
-                        pts: "+${task.points} ${l.get('pts')}",
-                        onAccept: () => _onAcceptTask(task),
-                        iconWidget: iconWidgets[index % iconWidgets.length],
-                        iconBg: iconBgs[index % iconBgs.length],
-                        iconColor: iconColors[index % iconColors.length],
-                        cardBg: Colors.white,
-                        title: task.title,
-                        subtitle: task.description,
-                      ),
-                    );
-                  },
-                ),
+              // ── Task Cards List ────────────────────────────────────────
+              ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: _dailyTasks.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final task = _dailyTasks[index];
+                  return _TaskCard(
+                    pts: "+${task.points} ${l.get('pts')}",
+                    onAccept: () => _onAcceptTask(task),
+                    title: task.title,
+                    subtitle: task.description,
+                  );
+                },
               ),
               const SizedBox(height: 28),
 
@@ -884,8 +497,11 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                           color: const Color(0xFFEDE9FE),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.bar_chart_rounded,
-                            color: Color(0xFF6D5DF6), size: 20),
+                        child: const Icon(
+                          Icons.bar_chart_rounded,
+                          color: Color(0xFF6D5DF6),
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -931,47 +547,49 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                 child: Column(
                   children: [
                     // Top 3 from Firestore
-                    ..._leaderboardUsers.take(3).toList().asMap().entries.map(
-                          (entry) {
-                        final index = entry.key;
-                        final data =
-                        entry.value.data() as Map<String, dynamic>;
-                        final name =
-                        (data['displayName'] ?? 'User') as String;
-                        final pts = data['waterPoints'] ?? 0;
-                        final initials = name
-                            .trim()
-                            .split(' ')
-                            .take(2)
-                            .map((w) => w[0].toUpperCase())
-                            .join();
-                        return Column(
-                          children: [
-                            _LeaderboardRow(
-                              rank: index + 1,
-                              initials: initials,
-                              name: name,
-                              pts: pts.toString(),
-                              avatarColor: _avatarColors[index],
-                              isUp: index < 2,
-                              medalColor: _medalColors[index],
-                            ),
-                            _divider(),
-                          ],
-                        );
-                      },
-                    ).toList(),
+                    ..._leaderboardUsers.take(3).toList().asMap().entries.map((
+                      entry,
+                    ) {
+                      final index = entry.key;
+                      final data = entry.value.data() as Map<String, dynamic>;
+                      final name = (data['displayName'] ?? 'User') as String;
+                      final pts = data['waterPoints'] ?? 0;
+                      final initials = name
+                          .trim()
+                          .split(' ')
+                          .take(2)
+                          .map((w) => w[0].toUpperCase())
+                          .join();
+                      return Column(
+                        children: [
+                          _LeaderboardRow(
+                            rank: index + 1,
+                            initials: initials,
+                            name: name,
+                            pts: pts.toString(),
+                            avatarColor: _avatarColors[index],
+                            isUp: index < 2,
+                            medalColor: _medalColors[index],
+                          ),
+                          _divider(),
+                        ],
+                      );
+                    }).toList(),
 
                     // "You" row
                     Container(
                       margin: const EdgeInsets.all(8),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0EEFF),
+                        color: Colors.black,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                            color: const Color(0xFFCBBEFF), width: 1.5),
+                          color: Colors.black,
+                          width: 1.5,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -979,7 +597,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEDE9FE),
+                              color: Colors.white24,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Center(
@@ -987,7 +605,7 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                 "$_currentUserRank",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF6D5DF6),
+                                  color: Colors.white,
                                   fontSize: 13,
                                 ),
                               ),
@@ -998,14 +616,14 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                             width: 40,
                             height: 40,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF6D5DF6),
+                              color: Colors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Text(
-                                "AK",
-                                style: TextStyle(
-                                  color: Colors.white,
+                                (FirebaseAuth.instance.currentUser?.displayName ?? 'User').trim().split(' ').take(2).map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').join(),
+                                style: const TextStyle(
+                                  color: Colors.black,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
@@ -1019,18 +637,18 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  l.get('you_label'),
+                                  FirebaseAuth.instance.currentUser?.displayName ?? 'User',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF6D5DF6),
+                                    color: Colors.white,
                                     fontSize: 14,
                                   ),
                                 ),
                                 Text(
-                                  "Keep going, Aditya! 💧",
-                                  style: TextStyle(
+                                  "Keep going, ${(FirebaseAuth.instance.currentUser?.displayName ?? 'User').split(' ').first}! 💧",
+                                  style: const TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey,
+                                    color: Colors.white70,
                                   ),
                                 ),
                               ],
@@ -1043,14 +661,14 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
                                   text: "$_totalPoints ",
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF6D5DF6),
+                                    color: Colors.white,
                                     fontSize: 15,
                                   ),
                                 ),
-                                TextSpan(
+                                const TextSpan(
                                   text: "PTS",
                                   style: TextStyle(
-                                    color: Colors.grey,
+                                    color: Colors.white70,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -1091,22 +709,12 @@ class _GamificationV2ScreenState extends State<GamificationV2Screen> {
 // ── Task Card Widget ─────────────────────────────────────────────────────────
 class _TaskCard extends StatelessWidget {
   final String pts;
-  final IconData? icon;
-  final Widget? iconWidget;
-  final Color iconBg;
-  final Color iconColor;
-  final Color cardBg;
   final String title;
   final String subtitle;
   final VoidCallback onAccept;
 
   const _TaskCard({
     required this.pts,
-    this.icon,
-    this.iconWidget,
-    required this.iconBg,
-    required this.iconColor,
-    required this.cardBg,
     required this.title,
     required this.subtitle,
     required this.onAccept,
@@ -1115,28 +723,54 @@ class _TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEDE9FE),
                   borderRadius: BorderRadius.circular(20),
@@ -1146,83 +780,34 @@ class _TaskCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFF6D5DF6),
                     fontWeight: FontWeight.w700,
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ),
-              const Icon(Icons.favorite_border_rounded,
-                  color: Colors.grey, size: 20),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Center(
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration:
-              BoxDecoration(color: iconBg, shape: BoxShape.circle),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  iconWidget ?? Icon(icon, color: iconColor, size: 26),
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border:
-                        Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: const Icon(Icons.camera_alt_rounded,
-                          size: 10, color: Colors.grey),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: 90,
+                child: ElevatedButton(
+                  onPressed: onAccept,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context)!.get('accept_task_btn'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-                fontSize: 11, color: Colors.grey, height: 1.3),
-          ),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onAccept,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6D5DF6),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                elevation: 0,
-              ),
-              child: Text(
-                AppLocalizations.of(context)!.get('accept_task_btn'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1317,17 +902,12 @@ class _LeaderboardRow extends StatelessWidget {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color:
-              isUp ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+              color: isUp ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isUp
-                  ? Icons.arrow_upward_rounded
-                  : Icons.arrow_downward_rounded,
-              color: isUp
-                  ? const Color(0xFF16A34A)
-                  : const Color(0xFFDC2626),
+              isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+              color: isUp ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
               size: 15,
             ),
           ),
