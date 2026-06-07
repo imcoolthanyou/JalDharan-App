@@ -21,6 +21,9 @@ import '../notifications/notifications_screen.dart';
 import '../community_settings/profile.dart';
 import '../../../core/widgets/mqtt_widgets.dart';
 
+// Device 2 MAC address constant
+const String _device2Mac = '28:05:A5:6E:71:B8';
+
 class HOmeScreenBackup extends StatefulWidget {
   const HOmeScreenBackup({super.key});
 
@@ -32,8 +35,6 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   String name = FirebaseAuth.instance.currentUser?.displayName ?? '';
   bool ispumpOn = false;
   bool _isLoadingPump = false;
-  bool _isLoading = false;
-  bool _noDevice = false;
   bool _everHadDevice = false;
   String? _cachedToken;
 
@@ -41,7 +42,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   final DashboardApiService _apiService = DashboardApiService();
   late Timer _autoRefreshTimer;
   static const Duration _refreshInterval = Duration(seconds: 10);
-  
+
   // Lockout timer to prevent MQTT from instantly overriding manual pump toggles
   DateTime? _lastPumpToggleTime;
 
@@ -81,28 +82,13 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       if (_hasDataChanged(data)) {
         setState(() {
           groundwaterData = data;
-          _isLoading = false;
-          _noDevice = false;
         });
         developer.log('📢 pH=${data.phLevel}, TDS=${data.tdsLevel}');
-      } else {
-        setState(() {
-          _isLoading = false;
-          _noDevice = false;
-        });
       }
     } on NoDeviceException {
-      if (!mounted) return;
-      if (!_everHadDevice) {
-        setState(() {
-          _isLoading = false;
-          _noDevice = true;
-        });
-      }
       developer.log('ℹ️ No device in response');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
       developer.log('Dashboard API Error: $e');
     }
   }
@@ -119,17 +105,29 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
 
   void _onSensorDataReceived(Map<String, dynamic> data) {
     developer.log('🔄 HomeScreenBackup received MQTT sensor update: $data');
+
+    final String? mac = data['device_mac'] ?? data['mac'];
+
+    if (mac != null &&
+        _lastPumpToggleTime != null &&
+        DateTime.now().difference(_lastPumpToggleTime!).inSeconds < 5) {
+      developer.log("⛔ MQTT ignored due to manual toggle");
+      return;
+    }
+
     try {
       if (data.containsKey('state') && data.containsKey('source')) {
-        // Only update if we haven't manually toggled in the last 5 seconds
-        if (_lastPumpToggleTime == null || DateTime.now().difference(_lastPumpToggleTime!).inSeconds > 5) {
+        if (_lastPumpToggleTime == null ||
+            DateTime.now().difference(_lastPumpToggleTime!).inSeconds > 5) {
           setState(() {
-            ispumpOn = (data['state'] == "ON" || data['state'] == "On");
+            ispumpOn = (data['state'] ?? '').toString().toUpperCase() == "ON";
           });
         }
       } else if (data.containsKey('motor_status')) {
-        if (_lastPumpToggleTime == null || DateTime.now().difference(_lastPumpToggleTime!).inSeconds > 5) {
-          bool physicalState = (data['motor_status'] == "ON" || data['motor_status'] == "On");
+        if (_lastPumpToggleTime == null ||
+            DateTime.now().difference(_lastPumpToggleTime!).inSeconds > 5) {
+          bool physicalState =
+          (data['motor_status'] == "ON" || data['motor_status'] == "On");
           if (physicalState != ispumpOn) {
             setState(() {
               ispumpOn = physicalState;
@@ -164,29 +162,31 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       _isLoadingPump = true;
     });
     try {
-      final headers = await AuthService().authHeaders();
-      headers["Content-Type"] = "application/json";
+final headers = await AuthService().authHeaders();
+headers["Content-Type"] = "application/json";
 
       final response = await http
           .post(
-            Uri.parse(ApiConfig.pumpControlEndpoint),
-            headers: headers,
-            body: jsonEncode({
-              "action": value ? "ON" : "OFF",
-              "device_mac": groundwaterData.deviceMac ?? "1C:69:20:A3:4E:98" // Fallback to known MAC
-            }),
-          )
+        Uri.parse(ApiConfig.pumpControlEndpoint),
+        headers: headers,
+        body: jsonEncode({
+          "action": value ? "ON" : "OFF",
+          "device_mac":
+          groundwaterData.deviceMac ?? "1C:69:20:A3:4E:98",
+        }),
+      )
           .timeout(
+        ApiConfig.requestTimeout,
+        onTimeout: () {
+          throw TimeoutException(
+            'Pump control request timed out',
             ApiConfig.requestTimeout,
-            onTimeout: () {
-              throw TimeoutException(
-                'Pump control request timed out',
-                ApiConfig.requestTimeout,
-              );
-            },
           );
+        },
+      );
       if (response.statusCode == 200) {
-        _lastPumpToggleTime = DateTime.now(); // Start lockout timer
+        _lastPumpToggleTime = DateTime.now();
+        developer.log("🚀 Pump toggled via API, blocking MQTT for 5s");
         setState(() {
           ispumpOn = value;
           _isLoadingPump = false;
@@ -213,13 +213,12 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
         ispumpOn = false;
       });
       developer.log("❌ Error toggling pump: $e");
+      developer.log("❌ Error type: ${e.runtimeType}");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              l?.get('pump_comm_error') ??
-                  'Error communicating with pump - set to OFF',
-            ),
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -469,20 +468,65 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   // WIDGETS
   // ──────────────────────────────────────────────────────────────────────────
 
-  /// 2×2 Analytics Grid
+  /// 2×2 Analytics Grid  +  "My Devices" button on the right of the title
   Widget _buildAnalyticsSection(AppLocalizations l) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l.get('analytics'),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
-          ),
+        // ── Title row ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              l.get('analytics'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
+            ),
+            // ── My Devices Button ──
+            GestureDetector(
+              onTap: () => _showDevicesDashboard(context, l),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.devices_rounded,
+                      size: 15,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      l.get('my_devices'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
+
+        // ── Row 1 ──
         Row(
           children: [
             Expanded(
@@ -509,6 +553,8 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
           ],
         ),
         const SizedBox(height: 12),
+
+        // ── Row 2 ──
         Row(
           children: [
             Expanded(
@@ -532,14 +578,12 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                 label: l.get('ph_level'),
                 value: groundwaterData.phLevel.toStringAsFixed(1),
                 unit: '',
-                statusText:
-                    (groundwaterData.phLevel >= 6.5 &&
-                        groundwaterData.phLevel <= 8.5)
+                statusText: (groundwaterData.phLevel >= 6.5 &&
+                    groundwaterData.phLevel <= 8.5)
                     ? l.get('safe')
                     : l.get('warning_level'),
-                statusColor:
-                    (groundwaterData.phLevel >= 6.5 &&
-                        groundwaterData.phLevel <= 8.5)
+                statusColor: (groundwaterData.phLevel >= 6.5 &&
+                    groundwaterData.phLevel <= 8.5)
                     ? AppColors.primary
                     : AppColors.warning,
               ),
@@ -576,10 +620,9 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // SVG Icon
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.lightGrey,
               shape: BoxShape.circle,
             ),
@@ -588,7 +631,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
               width: 40,
               height: 40,
               placeholderBuilder: (_) =>
-                  const Icon(Icons.water, size: 32, color: AppColors.primary),
+              const Icon(Icons.water, size: 32, color: AppColors.primary),
             ),
           ),
           const SizedBox(height: 10),
@@ -671,7 +714,6 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       ),
       child: Row(
         children: [
-          // Icon
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -691,7 +733,6 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
             ),
           ),
           const SizedBox(width: 16),
-          // Label + status
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -710,15 +751,13 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: ispumpOn
-                        ? AppColors.accentGreen
-                        : AppColors.mediumGrey,
+                    color:
+                    ispumpOn ? AppColors.accentGreen : AppColors.mediumGrey,
                   ),
                 ),
               ],
             ),
           ),
-          // Toggle
           if (_isLoadingPump)
             const SizedBox(
               width: 24,
@@ -728,9 +767,8 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
           else
             Switch(
               value: ispumpOn,
-              activeColor: Colors.white,
+              thumbColor: WidgetStateProperty.all(Colors.white),
               activeTrackColor: AppColors.accentGreen,
-              inactiveThumbColor: Colors.white,
               inactiveTrackColor: AppColors.lightGrey,
               onChanged: _togglePump,
             ),
@@ -827,6 +865,23 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // MY DEVICES DASHBOARD BOTTOM SHEET
+  // ──────────────────────────────────────────────────────────────────────────
+
+  void _showDevicesDashboard(BuildContext context, AppLocalizations l) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DevicesDashboardSheet(
+        groundwaterData: groundwaterData,
+        l: l,
+        getQualityColor: _getQualityColor,
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // HELPERS
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -890,9 +945,8 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       ),
     );
     try {
-      final summary = await DashboardApiService().generateAiReport(
-        groundwaterData,
-      );
+      final summary =
+      await DashboardApiService().generateAiReport(groundwaterData);
       if (mounted) Navigator.pop(context);
       await PdfReportService.generateAndShowReport(groundwaterData, summary);
     } catch (e) {
@@ -921,5 +975,534 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       default:
         return AppColors.error;
     }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DEVICES DASHBOARD BOTTOM SHEET  (extracted as separate StatelessWidget)
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _DevicesDashboardSheet extends StatefulWidget {
+  final GroundwaterData groundwaterData;
+  final AppLocalizations l;
+  final Color Function(String) getQualityColor;
+
+  const _DevicesDashboardSheet({
+    required this.groundwaterData,
+    required this.l,
+    required this.getQualityColor,
+  });
+
+  @override
+  State<_DevicesDashboardSheet> createState() => _DevicesDashboardSheetState();
+}
+
+class _DevicesDashboardSheetState extends State<_DevicesDashboardSheet> {
+  int _selectedDevice = 0; // 0 = Device 1, 1 = Device 2
+
+  @override
+  Widget build(BuildContext context) {
+    final l = widget.l;
+
+    // ── Live MQTT data for Device 2 ──
+    final mqttService = Provider.of<MqttService>(context); // listen: true → auto-rebuilds on new data
+    final device2Data = mqttService.getDeviceData(_device2Mac);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.78,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Handle bar ──
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.lightGrey,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Header ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.devices_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  l.get('my_devices'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Device Tab Selector ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                _buildDeviceTab(
+                  0,
+                  'Device 1',
+                  Icons.sensors,
+                  isLive: mqttService.isConnected,
+                ),
+                const SizedBox(width: 10),
+                _buildDeviceTab(
+                  1,
+                  'Device 2',
+                  Icons.sensors,
+                  isLive: device2Data != null,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Metrics Grid ──
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              physics: const BouncingScrollPhysics(),
+              child: _selectedDevice == 0
+                  ? _buildDevice1Metrics(l)
+                  : _buildDevice2Metrics(l, device2Data),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeviceTab(
+      int index,
+      String label,
+      IconData icon, {
+        required bool isLive,
+      }) {
+    final bool isSelected = _selectedDevice == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedDevice = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : AppColors.lightGrey,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : AppColors.mediumGrey,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : AppColors.mediumGrey,
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Live indicator dot — green if live, grey if offline
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: isLive
+                      ? AppColors.accentGreen
+                      : AppColors.mediumGrey.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Device 1 — live data from groundwaterData
+  Widget _buildDevice1Metrics(AppLocalizations l) {
+    final d = widget.groundwaterData;
+    return Column(
+      children: [
+        _buildDeviceInfoBanner(
+          deviceName: 'Device 1',
+          macAddress: d.deviceMac ?? '1C:69:20:A3:4E:98',
+          isLive: true,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                svgIconPath: 'assets/Icons/water_depth.svg',
+                label: l.get('water_depth'),
+                value: d.currentDepth.toStringAsFixed(1),
+                unit: 'm',
+                statusText: d.qualityStatus,
+                statusColor: widget.getQualityColor(d.qualityStatus),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                svgIconPath: 'assets/Icons/flow_rate.svg',
+                label: l.get('flow_rate'),
+                value: d.flowRate.toStringAsFixed(1),
+                unit: 'L/min',
+                statusText: l.get('normal'),
+                statusColor: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                svgIconPath: 'assets/Icons/tds_level.svg',
+                label: l.get('tds_level'),
+                value: d.tdsLevel.toStringAsFixed(0),
+                unit: 'ppm',
+                statusText: d.tdsLevel < 500
+                    ? l.get('safe')
+                    : l.get('warning_level'),
+                statusColor:
+                d.tdsLevel < 500 ? AppColors.primary : AppColors.warning,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                svgIconPath: 'assets/Icons/PH_Icon.svg',
+                label: l.get('ph_level'),
+                value: d.phLevel.toStringAsFixed(1),
+                unit: '',
+                statusText: (d.phLevel >= 6.5 && d.phLevel <= 8.5)
+                    ? l.get('safe')
+                    : l.get('warning_level'),
+                statusColor: (d.phLevel >= 6.5 && d.phLevel <= 8.5)
+                    ? AppColors.primary
+                    : AppColors.warning,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// Device 2 — live MQTT data (only water_depth_m + flow_rate available)
+  Widget _buildDevice2Metrics(
+      AppLocalizations l, Map<String, dynamic>? d2) {
+    final isLive = d2 != null;
+    final depth = (d2?['water_depth_m'] as num?)?.toDouble() ?? 0.0;
+    final flow = (d2?['flow_rate'] as num?)?.toDouble() ?? 0.0;
+
+    return Column(
+      children: [
+        _buildDeviceInfoBanner(
+          deviceName: 'Device 2',
+          macAddress: _device2Mac,
+          isLive: isLive,
+        ),
+        const SizedBox(height: 16),
+
+        // ── Waiting banner (shown when no data yet) ──
+        if (!isLive)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Container(
+              width: double.infinity,
+              padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.sensors_off,
+                      size: 16, color: AppColors.warning),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Waiting for Device 2 data...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // ── Metrics row ──
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                svgIconPath: 'assets/Icons/water_depth.svg',
+                label: l.get('water_depth'),
+                value: isLive ? depth.toStringAsFixed(2) : '--',
+                unit: isLive ? 'm' : '',
+                statusText: isLive ? l.get('normal') : '--',
+                statusColor:
+                isLive ? AppColors.primary : AppColors.mediumGrey,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                svgIconPath: 'assets/Icons/flow_rate.svg',
+                label: l.get('flow_rate'),
+                value: isLive ? flow.toStringAsFixed(1) : '--',
+                unit: isLive ? 'L/min' : '',
+                statusText: isLive ? l.get('normal') : '--',
+                statusColor:
+                isLive ? AppColors.primary : AppColors.mediumGrey,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// Banner showing device name, MAC, and live/offline badge
+  Widget _buildDeviceInfoBanner({
+    required String deviceName,
+    required String macAddress,
+    required bool isLive,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.lightGrey,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.router_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  deviceName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkGrey,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'MAC: $macAddress',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.mediumGrey,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Live / Offline badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: isLive
+                  ? AppColors.accentGreen.withValues(alpha: 0.12)
+                  : AppColors.warning.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isLive
+                        ? AppColors.accentGreen
+                        : AppColors.warning,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  isLive ? 'Live' : 'Offline',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isLive
+                        ? AppColors.accentGreen
+                        : AppColors.warning,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Compact metric card used inside the device dashboard
+  Widget _buildMetricCard({
+    required String svgIconPath,
+    required String label,
+    required String value,
+    required String unit,
+    required String statusText,
+    required Color statusColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lightGrey),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: AppColors.lightGrey,
+              shape: BoxShape.circle,
+            ),
+            child: SvgPicture.asset(
+              svgIconPath,
+              width: 32,
+              height: 32,
+              placeholderBuilder: (_) =>
+              const Icon(Icons.water, size: 28, color: AppColors.primary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: AppColors.mediumGrey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: value,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.darkGrey,
+                  ),
+                ),
+                if (unit.isNotEmpty)
+                  TextSpan(
+                    text: ' $unit',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mediumGrey,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  statusText,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(width: 3),
+                Icon(Icons.check, size: 10, color: statusColor),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

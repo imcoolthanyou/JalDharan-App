@@ -12,7 +12,11 @@ class MqttService with ChangeNotifier {
   bool isConnected = false;
   bool isConnecting = false;
 
-  // Latest data from sensors
+  // Latest data from sensors — keyed by device_mac
+  // e.g. { "1C:69:20:A3:4E:98": { ...data }, "28:05:A5:6E:71:B8": { ...data } }
+  final Map<String, Map<String, dynamic>> deviceDataMap = {};
+
+  // Legacy single-device field (kept for backward compatibility)
   Map<String, dynamic>? latestSensorData;
   String? lastError;
 
@@ -28,12 +32,11 @@ class MqttService with ChangeNotifier {
   }
 
   MqttService._internal() {
-    // Initialize the client with a shorter ID
     final clientId = 'fl_${DateTime.now().millisecondsSinceEpoch % 10000}';
     client = MqttServerClient(ApiConfig.mqttBrokerUrl, clientId);
     client.port = ApiConfig.mqttPort;
-    client.logging(on: true); // Enable logging to see the error
-    client.setProtocolV311(); // Strongly recommended for mosquitto
+    client.logging(on: true);
+    client.setProtocolV311();
     client.keepAlivePeriod = 60;
     client.onDisconnected = onDisconnected;
     client.onConnected = onConnected;
@@ -41,6 +44,9 @@ class MqttService with ChangeNotifier {
     client.onAutoReconnected = onAutoReconnected;
     client.autoReconnect = true;
   }
+
+  /// Returns latest data for a specific device MAC, or null if not yet received
+  Map<String, dynamic>? getDeviceData(String mac) => deviceDataMap[mac];
 
   /// Initialize MQTT connection
   Future<void> initConnection() async {
@@ -52,18 +58,19 @@ class MqttService with ChangeNotifier {
     isConnecting = true;
     notifyListeners();
 
-    developer.log('🔌 Initializing MQTT connection to ${ApiConfig.mqttBrokerUrl}:${ApiConfig.mqttPort}');
+    developer.log(
+        '🔌 Initializing MQTT connection to ${ApiConfig.mqttBrokerUrl}:${ApiConfig.mqttPort}');
 
     try {
       await client.connect();
     } on NoConnectionException catch (e) {
-      developer.log('❌ MQTT Client exception: $e');
+      developer.log('MQTT Client exception: $e');
       client.disconnect();
       lastError = e.toString();
       isConnecting = false;
       notifyListeners();
     } catch (e) {
-      developer.log('❌ MQTT Error: $e');
+      developer.log('MQTT Error: $e');
       client.disconnect();
       lastError = e.toString();
       isConnecting = false;
@@ -78,24 +85,43 @@ class MqttService with ChangeNotifier {
     lastError = null;
     notifyListeners();
 
-    // Notify all listeners
     for (var listener in _connectionStatusListeners) {
       listener(true);
     }
 
-    // Subscribe to the topic
-    developer.log('📡 Subscribing to topic: ${ApiConfig.mqttTopic}');
-    client.subscribe(ApiConfig.mqttTopic, MqttQos.atMostOnce);
+    // Subscribe to wildcard — catches ALL devices under jaldharan/sensors/
+    const wildcardTopic = 'jaldharan/sensors/#';
+    developer.log('📡 Subscribing to topic: $wildcardTopic');
+    client.subscribe(wildcardTopic, MqttQos.atMostOnce);
 
-    // Listen to updates
     client.updates!.listen((List<MqttReceivedMessage<MqttMessage?>>? c) {
       final recMess = c![0].payload as MqttPublishMessage;
-      final pt = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
+      final pt = MqttPublishPayload.bytesToStringAsString(
+          recMess.payload.message);
 
-      developer.log('📡 New Sensor Data Received on topic <${c[0].topic}>: $pt');
+      developer.log(
+          '📡 New Sensor Data on topic <${c[0].topic}>: $pt');
 
       try {
         final data = json.decode(pt) as Map<String, dynamic>;
+        // Ignore pump control / actuator feedback if needed
+        final type = data['type']?.toString();
+        final topic = c[0].topic;
+
+// Optional: ignore pump-status messages
+        if (type == 'pump_status' || type == 'actuator') {
+          developer.log("⛔ Ignored actuator message from MQTT");
+          return;
+        }
+
+        // Identify device by MAC in payload, fallback to topic suffix
+        final String mac = (data['device_mac'] as String?) ??
+            c[0].topic.split('/').last;
+
+        // Store per-device
+        deviceDataMap[mac] = data;
+
+        // Keep legacy field updated (last received device)
         latestSensorData = data;
         lastError = null;
         notifyListeners();
@@ -152,34 +178,28 @@ class MqttService with ChangeNotifier {
     }
   }
 
-  /// Add listener for sensor data updates
   void addSensorUpdateListener(Function(Map<String, dynamic>) listener) {
     _sensorUpdateListeners.add(listener);
   }
 
-  /// Remove listener for sensor data updates
   void removeSensorUpdateListener(Function(Map<String, dynamic>) listener) {
     _sensorUpdateListeners.remove(listener);
   }
 
-  /// Add listener for connection status changes
   void addConnectionStatusListener(Function(bool) listener) {
     _connectionStatusListeners.add(listener);
   }
 
-  /// Remove listener for connection status changes
   void removeConnectionStatusListener(Function(bool) listener) {
     _connectionStatusListeners.remove(listener);
   }
 
-  /// Get connection status as string
   String getConnectionStatus() {
     if (isConnected) return 'Connected';
     if (isConnecting) return 'Connecting...';
     return 'Disconnected';
   }
 
-  /// Dispose resources
   @override
   void dispose() {
     disconnect();

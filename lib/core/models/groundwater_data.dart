@@ -323,65 +323,72 @@ class GroundwaterData {
   /// Merge raw sensor data from Socket.IO with calculated data from REST API
   /// This keeps sensor values fresh from Socket while preserving calculated data
   GroundwaterData mergeWithSensorUpdate(Map<String, dynamic> sensorData) {
-    double? parsedDistanceCm = (sensorData['distance'] ?? sensorData['sensor_distance_cm'])?.toDouble();
+    // ── Normalize keys: MQTT Device 1 uses short names, REST uses long names ──
+    final double? rawFlow =
+    (sensorData['flow_rate'] ?? sensorData['flow_rate_L_min'])?.toDouble();
+    final double? rawTds =
+    (sensorData['tds'] ?? sensorData['tds_value'])?.toDouble();
+    final double? rawPh = sensorData['ph']?.toDouble();
+    final double? rawVoltage = sensorData['voltage']?.toDouble();
+    final double? rawCurrent =
+    (sensorData['current'] ?? sensorData['pump_current_amps'])?.toDouble();
+    final double? rawMoisture =
+    (sensorData['moisture'] ?? sensorData['soil_moisture'])?.toDouble();
+
+    // ── Depth calculation ──
+    double? parsedDistanceCm =
+    (sensorData['distance'] ?? sensorData['sensor_distance_cm'])?.toDouble();
     double currentDepth;
     if (sensorData.containsKey('water_depth_m')) {
-      currentDepth = sensorData['water_depth_m'].toDouble();
+      currentDepth = (sensorData['water_depth_m'] as num).toDouble();
       parsedDistanceCm ??= currentDepth * 100;
     } else {
-      parsedDistanceCm ??= this.sensorDistanceCm;
+      parsedDistanceCm ??= sensorDistanceCm;
       currentDepth = parsedDistanceCm / 100;
     }
-    final sensorDistanceCm = parsedDistanceCm;
+    final newSensorDistanceCm = parsedDistanceCm;
     final totalDepth = this.totalDepth;
 
     return GroundwaterData(
       currentDepth: currentDepth,
       totalDepth: totalDepth,
-      flowRate: (sensorData['flow_rate_L_min'] ?? this.flowRate).toDouble(),
+      flowRate: rawFlow ?? flowRate,
       remainingPercentage:
-          '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
-      qualityScore: this.qualityScore,
-      qualityStatus: this.qualityStatus,
-      currentSession: this.currentSession,
-      estimatedExtraction: this.estimatedExtraction,
-      tdsLevel: (sensorData['tds_value'] ?? sensorData['tds'] ?? this.tdsLevel).toDouble(),
-      tdsStatus: this.tdsStatus,
-      phLevel: (sensorData['ph'] ?? this.phLevel).toDouble(),
-      phStatus: this.phStatus,
-      voltage: (sensorData['voltage'] ?? this.voltage).toDouble(),
-      current: (sensorData['pump_current_amps'] ?? sensorData['current'] ?? this.current).toDouble(),
-      motorStatus: this.motorStatus,
-      soilMoisture: (sensorData['soil_moisture'] ?? this.soilMoisture)
-          .toDouble(),
-      soilMoistureStatus: this.soilMoistureStatus,
-      extractionRate: (sensorData['flow_rate_L_min'] ?? this.extractionRate)
-          .toDouble(),
-      extractionStatus: this.extractionStatus,
-      lastUpdated: sensorData['timestamp'] ?? this.lastUpdated,
-      sensorDistanceCm: sensorDistanceCm, // New field
-      flowRateThisSession:
-          (sensorData['flow_rate_L_min'] ?? this.flowRateThisSession)
-              .toDouble(),
-      totalExtractionPerSession: this.totalExtractionPerSession,
-      // Note: totalExtractionPerSession is complex to calculate on socket, relying on polling for now.
+      '${((1 - (currentDepth / totalDepth)) * 100).toStringAsFixed(1)}%',
+      qualityScore: qualityScore,
+      qualityStatus: qualityStatus,
+      currentSession: currentSession,
+      estimatedExtraction: estimatedExtraction,
+      tdsLevel: rawTds ?? tdsLevel,
+      tdsStatus: tdsStatus,
+      phLevel: rawPh ?? phLevel,
+      phStatus: phStatus,
+      voltage: rawVoltage ?? voltage,
+      current: rawCurrent ?? current,
+      motorStatus: motorStatus,
+      soilMoisture: rawMoisture ?? soilMoisture,
+      soilMoistureStatus: soilMoistureStatus,
+      extractionRate: rawFlow ?? extractionRate,
+      extractionStatus: extractionStatus,
+      lastUpdated: sensorData['timestamp'] ?? lastUpdated,
+      sensorDistanceCm: newSensorDistanceCm,
+      flowRateThisSession: rawFlow ?? flowRateThisSession,
+      totalExtractionPerSession: totalExtractionPerSession,
       totalLifetimeExtractionL:
-          (sensorData['total_lifetime_extraction_L'] ??
-                  this.totalLifetimeExtractionL)
-              .toDouble(),
-      // Updated from socket payload if available
-      predictedDepth7Days: this.predictedDepth7Days,
-      predictedDepth14Days: this.predictedDepth14Days,
-      predictedDepth30Days: this.predictedDepth30Days,
-      trend30Days: this.trend30Days,
-      waterStressLevel: this.waterStressLevel,
-      weatherTemp: this.weatherTemp,
-      weatherCondition: this.weatherCondition,
-      weatherDescription: this.weatherDescription,
-      weatherIcon: this.weatherIcon,
-      rainAlert: this.rainAlert,
-      waterHealthAI: this.waterHealthAI,
-      deviceMac: sensorData['device_mac'] ?? this.deviceMac,
+      (sensorData['total_lifetime_extraction_L'] as num?)?.toDouble() ??
+          totalLifetimeExtractionL,
+      predictedDepth7Days: predictedDepth7Days,
+      predictedDepth14Days: predictedDepth14Days,
+      predictedDepth30Days: predictedDepth30Days,
+      trend30Days: trend30Days,
+      waterStressLevel: waterStressLevel,
+      weatherTemp: weatherTemp,
+      weatherCondition: weatherCondition,
+      weatherDescription: weatherDescription,
+      weatherIcon: weatherIcon,
+      rainAlert: rainAlert,
+      waterHealthAI: waterHealthAI,
+      deviceMac: (sensorData['device_mac'] as String?) ?? deviceMac,
     );
   }
 
