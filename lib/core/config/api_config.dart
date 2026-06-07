@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'http://10.50.236.219:8000';
+  static const String baseUrl = 'http://10.50.236.149:8000';
 
   // Dashboard endpoints
   static const String dashboardEndpoint = '$baseUrl/dashboard';
@@ -36,12 +36,16 @@ class ApiConfig {
     seconds: 120,
   ); // AI models can be slow
 
-  // Socket.IO Configuration
+  // MQTT Configuration
   // ========================
-  // The SocketService automatically connects to:
-  // WebSocket: ws://{baseUrl}
+  static const String mqttBrokerUrl = '10.50.236.149';
+  static const int mqttPort = 1883;
+  static const String mqttTopic = 'jaldharan/sensors/#';
   //
-  // Backend Socket.IO Server emits 'sensor_update' event with RAW SENSOR DATA ONLY:
+  // The MqttService automatically connects to this broker
+  // and listens for sensor updates.
+  //
+  // Expected JSON payload:
   // {
   //   "water_depth_m": double,
   //   "flow_rate_L_min": double,
@@ -51,11 +55,4 @@ class ApiConfig {
   //   "ph": double,
   //   "timestamp": string (ISO format)
   // }
-  //
-  // This is the LIVE/REAL-TIME sensor data stream.
-  // Calculated data (water_quality, motor_load, groundwater_trend, weather_data)
-  // comes from the REST endpoint /mobile/dashboard which should be called
-  // periodically (every 5-10 seconds) to get the full calculated data.
-  //
-  // See SOCKET_IO_INTEGRATION.txt for complete documentation
 }

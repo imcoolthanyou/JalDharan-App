@@ -12,13 +12,14 @@ import '../rainwater_harvesting/rainwater_harvesting_screen.dart';
 import '../../../core/models/groundwater_data.dart';
 import '../../../core/services/dashboard_api_service.dart';
 import '../../../core/services/pdf_report_service.dart';
-import '../../../core/services/socket_service.dart';
+import '../../../core/services/mqtt_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../notifications/notifications_screen.dart';
 import '../community_settings/profile.dart';
+import '../../../core/widgets/mqtt_widgets.dart';
 
 class HOmeScreenBackup extends StatefulWidget {
   const HOmeScreenBackup({super.key});
@@ -40,6 +41,9 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   final DashboardApiService _apiService = DashboardApiService();
   late Timer _autoRefreshTimer;
   static const Duration _refreshInterval = Duration(seconds: 10);
+  
+  // Lockout timer to prevent MQTT from instantly overriding manual pump toggles
+  DateTime? _lastPumpToggleTime;
 
   @override
   void initState() {
@@ -51,12 +55,12 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       _fetchDashboardData();
     });
     Future.microtask(() {
-      final socketService = Provider.of<SocketService>(context, listen: false);
-      if (!socketService.isConnected && !socketService.isConnecting) {
-        socketService.initSocket();
+      final mqttService = Provider.of<MqttService>(context, listen: false);
+      if (!mqttService.isConnected && !mqttService.isConnecting) {
+        mqttService.initConnection();
       }
-      socketService.addSensorUpdateListener(_onSensorDataReceived);
-      socketService.addConnectionStatusListener(_onConnectionStatusChanged);
+      mqttService.addSensorUpdateListener(_onSensorDataReceived);
+      mqttService.addConnectionStatusListener(_onConnectionStatusChanged);
     });
     _startAutoRefresh();
   }
@@ -114,25 +118,31 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   }
 
   void _onSensorDataReceived(Map<String, dynamic> data) {
-    developer.log('🔄 HomeScreenBackup received Socket sensor update: $data');
+    developer.log('🔄 HomeScreenBackup received MQTT sensor update: $data');
     try {
       if (data.containsKey('state') && data.containsKey('source')) {
-        setState(() {
-          ispumpOn = (data['state'] == "ON");
-        });
-      } else if (data.containsKey('motor_status')) {
-        bool physicalState = (data['motor_status'] == "ON");
-        if (physicalState != ispumpOn)
+        // Only update if we haven't manually toggled in the last 5 seconds
+        if (_lastPumpToggleTime == null || DateTime.now().difference(_lastPumpToggleTime!).inSeconds > 5) {
           setState(() {
-            ispumpOn = physicalState;
+            ispumpOn = (data['state'] == "ON" || data['state'] == "On");
           });
+        }
+      } else if (data.containsKey('motor_status')) {
+        if (_lastPumpToggleTime == null || DateTime.now().difference(_lastPumpToggleTime!).inSeconds > 5) {
+          bool physicalState = (data['motor_status'] == "ON" || data['motor_status'] == "On");
+          if (physicalState != ispumpOn) {
+            setState(() {
+              ispumpOn = physicalState;
+            });
+          }
+        }
       }
       final updatedData = groundwaterData.mergeWithSensorUpdate(data);
       if (mounted && _hasDataChanged(updatedData)) {
         setState(() {
           groundwaterData = updatedData;
         });
-        developer.log('✅ HomeScreenBackup UI updated with Socket data');
+        developer.log('✅ HomeScreenBackup UI updated with MQTT data');
       }
     } catch (e) {
       developer.log('❌ Error updating with socket data: $e');
@@ -154,11 +164,17 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
       _isLoadingPump = true;
     });
     try {
+      final headers = await AuthService().authHeaders();
+      headers["Content-Type"] = "application/json";
+
       final response = await http
           .post(
             Uri.parse(ApiConfig.pumpControlEndpoint),
-            headers: {"Content-Type": "application/json"},
-            body: jsonEncode({"action": value ? "ON" : "OFF"}),
+            headers: headers,
+            body: jsonEncode({
+              "action": value ? "ON" : "OFF",
+              "device_mac": groundwaterData.deviceMac ?? "1C:69:20:A3:4E:98" // Fallback to known MAC
+            }),
           )
           .timeout(
             ApiConfig.requestTimeout,
@@ -170,6 +186,7 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
             },
           );
       if (response.statusCode == 200) {
+        _lastPumpToggleTime = DateTime.now(); // Start lockout timer
         setState(() {
           ispumpOn = value;
           _isLoadingPump = false;
@@ -212,9 +229,9 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
   @override
   void dispose() {
     _autoRefreshTimer.cancel();
-    final socketService = Provider.of<SocketService>(context, listen: false);
-    socketService.removeSensorUpdateListener(_onSensorDataReceived);
-    socketService.removeConnectionStatusListener(_onConnectionStatusChanged);
+    final mqttService = Provider.of<MqttService>(context, listen: false);
+    mqttService.removeSensorUpdateListener(_onSensorDataReceived);
+    mqttService.removeConnectionStatusListener(_onConnectionStatusChanged);
     super.dispose();
   }
 
@@ -275,6 +292,8 @@ class _HOmeScreenBackupState extends State<HOmeScreenBackup> {
                 ),
               ),
             ),
+            // Connection Status Indicator
+            const MqttStatusIndicator(showLabel: false),
             // Notifications
             Stack(
               children: [

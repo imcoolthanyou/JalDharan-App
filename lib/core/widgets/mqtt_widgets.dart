@@ -6,22 +6,22 @@
 ///
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/socket_service.dart';
+import '../services/mqtt_service.dart';
 
-class SocketStatusIndicator extends StatelessWidget {
+class MqttStatusIndicator extends StatelessWidget {
   final bool showLabel;
 
-  const SocketStatusIndicator({
+  const MqttStatusIndicator({
     Key? key,
     this.showLabel = true,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SocketService>(
-      builder: (context, socketService, child) {
-        final isConnected = socketService.isConnected;
-        final isConnecting = socketService.isConnecting;
+    return Consumer<MqttService>(
+      builder: (context, mqttService, child) {
+        final isConnected = mqttService.isConnected;
+        final isConnecting = mqttService.isConnecting;
 
         Color statusColor = Colors.grey;
         String statusText = 'Offline';
@@ -69,19 +69,19 @@ class SocketStatusIndicator extends StatelessWidget {
 ///
 /// Manual reconnect button for debugging socket issues
 ///
-class SocketReconnectButton extends StatelessWidget {
-  const SocketReconnectButton({Key? key}) : super(key: key);
+class MqttReconnectButton extends StatelessWidget {
+  const MqttReconnectButton({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SocketService>(
-      builder: (context, socketService, child) {
+    return Consumer<MqttService>(
+      builder: (context, mqttService, child) {
         return IconButton(
           icon: const Icon(Icons.refresh),
-          tooltip: 'Reconnect Socket',
-          onPressed: socketService.isConnected
+          tooltip: 'Reconnect MQTT',
+          onPressed: mqttService.isConnected
               ? null
-              : () => socketService.reconnect(),
+              : () => mqttService.reconnect(),
         );
       },
     );
@@ -98,16 +98,16 @@ class LatestDataDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SocketService>(
-      builder: (context, socketService, child) {
-        if (socketService.latestSensorData == null) {
+    return Consumer<MqttService>(
+      builder: (context, mqttService, child) {
+        if (mqttService.latestSensorData == null) {
           return const Padding(
             padding: EdgeInsets.all(16),
             child: Text('Waiting for sensor data...'),
           );
         }
 
-        final data = socketService.latestSensorData!;
+        final data = mqttService.latestSensorData!;
         final sensorData = data['sensor_data'] ?? {};
 
         return Container(

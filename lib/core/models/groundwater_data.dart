@@ -27,6 +27,7 @@ class GroundwaterData {
   totalExtractionPerSession; // New field for total extraction since pump start
   final double
   totalLifetimeExtractionL; // New field for total accumulated extraction
+  final String? deviceMac; // Added deviceMac
 
   // Prediction fields
   final double predictedDepth7Days;
@@ -81,6 +82,7 @@ class GroundwaterData {
     this.weatherIcon,
     this.rainAlert,
     this.waterHealthAI,
+    this.deviceMac,
   });
 
   // Helper to calculate Power in kW
@@ -194,6 +196,7 @@ class GroundwaterData {
       waterHealthAI: predictions['water_health_ai'] != null
           ? WaterHealthAI.fromJson(predictions['water_health_ai'])
           : null,
+      deviceMac: device['device_mac'],
     );
   }
 
@@ -266,6 +269,7 @@ class GroundwaterData {
       waterHealthAI: json['water_health_ai'] != null
           ? WaterHealthAI.fromJson(json['water_health_ai'])
           : null,
+      deviceMac: json['device_mac'],
     );
   }
 
@@ -312,17 +316,24 @@ class GroundwaterData {
       predictedDepth30Days: 0.0,
       trend30Days: 'stable',
       waterStressLevel: 'low',
+      deviceMac: json['device_mac'],
     );
   }
 
   /// Merge raw sensor data from Socket.IO with calculated data from REST API
   /// This keeps sensor values fresh from Socket while preserving calculated data
   GroundwaterData mergeWithSensorUpdate(Map<String, dynamic> sensorData) {
-    final sensorDistanceCm =
-        (sensorData['distance'] ?? sensorData['sensor_distance_cm'] ?? this.sensorDistanceCm)
-            .toDouble();
+    double? parsedDistanceCm = (sensorData['distance'] ?? sensorData['sensor_distance_cm'])?.toDouble();
+    double currentDepth;
+    if (sensorData.containsKey('water_depth_m')) {
+      currentDepth = sensorData['water_depth_m'].toDouble();
+      parsedDistanceCm ??= currentDepth * 100;
+    } else {
+      parsedDistanceCm ??= this.sensorDistanceCm;
+      currentDepth = parsedDistanceCm / 100;
+    }
+    final sensorDistanceCm = parsedDistanceCm;
     final totalDepth = this.totalDepth;
-    final currentDepth = sensorDistanceCm / 100;
 
     return GroundwaterData(
       currentDepth: currentDepth,
@@ -334,12 +345,12 @@ class GroundwaterData {
       qualityStatus: this.qualityStatus,
       currentSession: this.currentSession,
       estimatedExtraction: this.estimatedExtraction,
-      tdsLevel: (sensorData['tds_value'] ?? this.tdsLevel).toDouble(),
+      tdsLevel: (sensorData['tds_value'] ?? sensorData['tds'] ?? this.tdsLevel).toDouble(),
       tdsStatus: this.tdsStatus,
       phLevel: (sensorData['ph'] ?? this.phLevel).toDouble(),
       phStatus: this.phStatus,
       voltage: (sensorData['voltage'] ?? this.voltage).toDouble(),
-      current: (sensorData['pump_current_amps'] ?? this.current).toDouble(),
+      current: (sensorData['pump_current_amps'] ?? sensorData['current'] ?? this.current).toDouble(),
       motorStatus: this.motorStatus,
       soilMoisture: (sensorData['soil_moisture'] ?? this.soilMoisture)
           .toDouble(),
@@ -370,6 +381,7 @@ class GroundwaterData {
       weatherIcon: this.weatherIcon,
       rainAlert: this.rainAlert,
       waterHealthAI: this.waterHealthAI,
+      deviceMac: sensorData['device_mac'] ?? this.deviceMac,
     );
   }
 

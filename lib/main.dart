@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/socket_service.dart';
+import 'core/services/mqtt_service.dart';
 import 'core/providers/language_provider.dart';
 import 'core/localization/app_localizations.dart';
 import 'firebase_options.dart';
@@ -34,12 +34,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();
-    final socketService = SocketService();
+    final mqttService = MqttService();
+    mqttService.initConnection();
 
     return MultiProvider(
       providers: [
-        // Socket Service Provider
-        ChangeNotifierProvider<SocketService>.value(value: socketService),
+        // MQTT Service Provider
+        ChangeNotifierProvider<MqttService>.value(value: mqttService),
         // Language Provider
         ChangeNotifierProvider<LanguageProvider>(
           create: (_) => LanguageProvider(),
@@ -92,14 +93,14 @@ class MyApp extends StatelessWidget {
         }
         switch (snapshot.data!) {
           case _AppStartState.home:
-            // Init socket for returning signed-in users
+            // Init MQTT for returning signed-in users
             Future.microtask(() {
-              final socketService = Provider.of<SocketService>(
+              final mqttService = Provider.of<MqttService>(
                 context,
                 listen: false,
               );
-              if (!socketService.isConnected && !socketService.isConnecting) {
-                socketService.initSocket();
+              if (!mqttService.isConnected) {
+                mqttService.initConnection();
               }
             });
             return const MainNavigationScreen();

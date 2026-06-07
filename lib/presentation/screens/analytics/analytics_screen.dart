@@ -5,7 +5,7 @@ import 'dart:async';
 
 import '../../../core/models/groundwater_data.dart';
 import '../../../core/services/dashboard_api_service.dart';
-import '../../../core/services/socket_service.dart';
+import '../../../core/services/mqtt_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import 'dart:developer' as developer;
@@ -40,8 +40,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     Future.microtask(() {
-      final socketService = Provider.of<SocketService>(context, listen: false);
-      socketService.addSensorUpdateListener(_onSensorDataReceived);
+      final mqttService = Provider.of<MqttService>(context, listen: false);
+      mqttService.addSensorUpdateListener(_onSensorDataReceived);
     });
 
     _startAutoRefresh();
@@ -56,7 +56,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         });
       }
     } catch (e) {
-      developer.log('Error updating with socket sensor data in AnalyticsScreen: $e');
+      developer.log('Error updating with MQTT sensor data in AnalyticsScreen: $e');
     }
   }
 
@@ -88,8 +88,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   void dispose() {
     _autoRefreshTimer.cancel();
-    final socketService = Provider.of<SocketService>(context, listen: false);
-    socketService.removeSensorUpdateListener(_onSensorDataReceived);
+    final mqttService = Provider.of<MqttService>(context, listen: false);
+    mqttService.removeSensorUpdateListener(_onSensorDataReceived);
     super.dispose();
   }
 
